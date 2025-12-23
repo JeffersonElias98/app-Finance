@@ -8,12 +8,12 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS "AGRESSIVO" PARA MOBILE ---
+# --- CSS: COMPACTO, LADO A LADO E SEGURO ---
 st.markdown("""
 <style>
-    /* 1. AJUSTES GERAIS DE ESPAÇAMENTO */
+    /* 1. Ajuste de Topo */
     .block-container {
-        padding-top: 3.5rem !important; /* Espaço pro logo não cortar */
+        padding-top: 3.5rem !important;
         padding-bottom: 5rem;
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
@@ -21,7 +21,7 @@ st.markdown("""
 
     /* 2. CABEÇALHO */
     .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-    .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 8px; }
+    .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
     .logo-scale { font-size: 2.5rem; line-height: 1; z-index: 1; }
     .logo-money { position: absolute; top: 0px; font-size: 1.2rem; z-index: 2; }
     .app-name { 
@@ -30,60 +30,61 @@ st.markdown("""
         white-space: nowrap; 
     }
 
-    /* 3. FORÇAR LINHA ÚNICA NO CELULAR (CSS CRÍTICO) */
-    
-    /* Afeta os blocos horizontais (colunas) */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important; /* OBRIGA SER LINHA */
-        flex-wrap: nowrap !important; /* PROÍBE QUEBRAR LINHA */
-        align-items: center !important;
-        gap: 2px !important; /* Espacinho mínimo */
-        width: 100% !important;
-    }
-
-    /* Afeta cada coluna individualmente */
-    div[data-testid="column"] {
-        min-width: 0 !important; /* Permite encolher infinitamente */
-        flex: 1 1 auto !important; /* Cresce e encolhe conforme necessário */
-        padding: 0 !important;
-    }
-
-    /* 4. AJUSTES ESPECÍFICOS PARA OS BOTÕES DE SETA */
-    /* Identifica colunas pequenas (geralmente as setas) e centraliza */
-    div[data-testid="column"]:nth-of-type(1) button, 
-    div[data-testid="column"]:nth-of-type(3) button {
-        padding: 0px !important;
-        width: 100% !important;
-        min-height: 40px !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    /* 5. FONTE DOS SALDOS NO CELULAR */
+    /* 3. REGRAS PARA CELULAR (Telas pequenas) */
     @media (max-width: 640px) {
-        /* Diminui label (Receitas, Despesas) */
-        div[data-testid="stMetricLabel"] { 
-            font-size: 0.65rem !important; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            white-space: nowrap; 
+        
+        /* FORÇA LINHA HORIZONTAL nos blocos de colunas */
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 5px !important;
         }
-        /* Diminui valor (R$ 0,00) */
+
+        /* COLUNAS: Permite encolher para caber */
+        div[data-testid="column"] {
+            min-width: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* --- AJUSTE DA NAVEGAÇÃO (SETAS E MÊS) --- */
+        /* Força botões pequenos */
+        button[kind="secondary"] {
+            padding: 0 !important;
+            min-height: 35px !important;
+            line-height: 1 !important; 
+        }
+        /* Título do Mês Compacto */
+        h3 { 
+            font-size: 1rem !important; 
+            white-space: nowrap !important;
+            margin: 0 !important;
+        }
+
+        /* --- AJUSTE DOS SALDOS (RECEITA/DESPESA/SALDO) --- */
+        /* Reduz drásticamente a fonte para caber 3 lado a lado */
+        div[data-testid="stMetricLabel"] { 
+            font-size: 0.65rem !important; /* Texto "Receita" pequeno */
+        }
         div[data-testid="stMetricValue"] { 
-            font-size: 0.8rem !important; 
+            font-size: 0.85rem !important; /* Valor "R$ 100" pequeno */
             font-weight: 700 !important;
         }
-        
-        /* Título do Mês */
-        h3 { font-size: 1rem !important; margin: 0 !important; }
-        
+
         /* Esconde rodapé */
         footer { display: none; }
     }
     
-    /* Estilo para Radio Buttons (Categoria/Tipo) */
+    /* Container de Categorias com rolagem (Sem teclado) */
+    .category-container {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #444;
+        padding: 5px;
+        border-radius: 8px;
+        background-color: #262730;
+    }
+    /* Estilo Radio Buttons */
     div[role="radiogroup"] { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
 """, unsafe_allow_html=True)
@@ -164,9 +165,9 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO (FORÇADA EM LINHA) ---
-# Usando proporção exata para dar espaço ao texto no meio
-c1, c2, c3 = st.columns([1, 4, 1])
+# --- NAVEGAÇÃO ---
+# Proporção [1, 6, 1] dá muito espaço para o mês e pouco para as setas
+c1, c2, c3 = st.columns([1, 6, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -180,18 +181,19 @@ with c3:
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) + pd.DateOffset(months=1)).date()
         st.rerun()
 
-# --- FORMULÁRIO (SEM TECLADO ONDE POSSÍVEL) ---
+# --- FORMULÁRIO ---
 with st.expander("➕ Nova Transação", expanded=st.session_state.expander_aberto):
     st.write("**Tipo:**")
     st.radio("Tipo", ["Despesa", "Receita"], horizontal=True, label_visibility="collapsed", key="new_tipo")
     
-    c_a, c_b = st.columns(2)
-    with c_a: st.number_input("Valor", min_value=0.0, step=10.0, key="new_valor")
-    with c_b: st.date_input("Data", value=date.today(), key="new_data")
+    col_a, col_b = st.columns(2)
+    with col_a: st.number_input("Valor", min_value=0.0, step=10.0, key="new_valor")
+    with col_b: st.date_input("Data", value=date.today(), key="new_data")
         
     st.write("**Categoria:**")
-    # TROQUEI Selectbox por Radio para não abrir teclado
-    st.radio("Categoria", CATEGORIAS, horizontal=False, label_visibility="collapsed", key="new_cat")
+    st.markdown('<div class="category-container">', unsafe_allow_html=True)
+    st.radio("Categoria", CATEGORIAS, key="new_cat", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
     
     st.text_input("Descrição", key="new_desc")
     
@@ -216,15 +218,15 @@ if len(st.session_state['dados']) > 0:
     
     st.divider()
     
-    # SALDOS (FORÇADOS EM LINHA PELO CSS ACIMA)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Receitas", f"R$ {rec:,.2f}")
-    c2.metric("Despesas", f"R$ {desp:,.2f}")
-    c3.metric("Saldo", f"R$ {rec+desp:,.2f}")
+    # SALDOS (Forçados lado a lado pelo CSS)
+    # Importante: Proporção igual
+    c_rec, c_desp, c_saldo = st.columns([1, 1, 1])
+    c_rec.metric("Receitas", f"R$ {rec:,.2f}")
+    c_desp.metric("Despesas", f"R$ {desp:,.2f}")
+    c_saldo.metric("Saldo", f"R$ {rec+desp:,.2f}")
     
     st.divider()
 
-    # Confirmação Exclusão
     if st.session_state['item_exclusao']:
         item = st.session_state['item_exclusao']
         st.warning(f"Apagar: **{item['Descrição']}**?")
@@ -238,10 +240,9 @@ if len(st.session_state['dados']) > 0:
             salvar_dados_arquivo(st.session_state['dados']); st.session_state['item_exclusao'] = None; st.rerun()
         if cd4.button("Sair"): st.session_state['item_exclusao'] = None; st.rerun()
 
-    # Lista de Transações
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # Layout do Card
+            # Layout do card mantido
             ci, cv, cb = st.columns([3, 1.5, 1.2])
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
@@ -250,11 +251,11 @@ if len(st.session_state['dados']) > 0:
                 cor = "green" if row['Valor'] > 0 else "red"
                 st.markdown(f"<span style='color:{cor}; font-weight:bold;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
             with cb:
-                c_btn1, c_btn2 = st.columns(2)
-                with c_btn1:
+                c1, c2 = st.columns(2)
+                with c1:
                     icon_status = "✅" if row['Status'] == "Pago" else "⏳"
                     st.button(icon_status, key=f"st_{row['ID']}", on_click=cb_alternar_status, args=(row['ID'],))
-                with c_btn2:
+                with c2:
                     if st.button("🗑️", key=f"del_{row['ID']}"):
                         st.session_state['item_exclusao'] = row.to_dict()
                         st.rerun()
