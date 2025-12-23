@@ -8,91 +8,73 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS DEFINITIVO (MOBILE IGUAL PC) ---
+# --- CSS "NUCLEAR" PARA MOBILE ---
 st.markdown("""
 <style>
-    /* 1. Ajuste de Topo (Mais espaço para não cortar o logo) */
-    .block-container { padding-top: 3rem !important; padding-bottom: 3rem; }
+    /* 1. ESPAÇO NO TOPO (Para não cortar o logo) */
+    .block-container {
+        padding-top: 4rem !important; /* Aumentei bastante para garantir */
+        padding-bottom: 3rem;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
 
-    /* 2. Cabeçalho Seguro (Sem cortar) */
-    .app-header { 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        margin-bottom: 20px;
-        width: 100%; /* Garante que ocupa a largura certa */
-    }
-    .logo-wrapper { 
-        position: relative; 
-        width: 50px; 
-        height: 50px; 
-        display: flex; 
-        justify-content: center; 
-        align-items: flex-end; 
-        margin-right: 10px; 
-    }
-    .logo-scale { font-size: 2.5rem; line-height: 1; z-index: 1; }
-    .logo-money { position: absolute; top: 0px; font-size: 1.2rem; z-index: 2; }
+    /* 2. CABEÇALHO */
+    .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .logo-wrapper { position: relative; width: 55px; height: 55px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
+    .logo-scale { font-size: 3rem; line-height: 1; z-index: 1; }
+    .logo-money { position: absolute; top: 2px; font-size: 1.4rem; z-index: 2; }
     .app-name { 
         font-family: sans-serif; 
         font-weight: 700; 
-        font-size: clamp(1.4rem, 5vw, 2rem); /* Fonte que diminui mas não some */
+        font-size: clamp(1.5rem, 5vw, 2.2rem); 
         white-space: nowrap; 
     }
 
-    /* 3. Título do Mês */
-    .month-title { 
-        white-space: nowrap; 
-        margin: 0; 
-        text-align: center; 
-        font-weight: bold; 
-        color: #4CAF50; 
-        font-size: clamp(1rem, 4vw, 1.5rem); 
+    /* 3. FORÇAR COLUNAS LADO A LADO (PC E MOBILE) */
+    
+    /* Isso afeta TODAS as colunas do app */
+    div[data-testid="column"] {
+        display: flex;
+        flex-direction: column; /* Conteúdo dentro da coluna fica vertical */
+        min-width: 0 !important; /* PERMITE ENCOLHER (Crucial para mobile) */
     }
 
-    /* ============================================================
-       FORÇAR LAYOUT LADO A LADO NO CELULAR
-    ============================================================ */
+    /* Regras específicas para telas pequenas (Celular) */
     @media (max-width: 640px) {
         
-        /* OBRIGA as colunas a ficarem na mesma linha */
+        /* PROIBIR QUEBRA DE LINHA nas linhas horizontais */
         div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important; 
+            flex-direction: row !important;
             flex-wrap: nowrap !important;
-            gap: 5px !important;
+            gap: 0.5rem !important; /* Espaço pequeno entre colunas */
             align-items: center !important;
         }
-        
-        /* Permite que as colunas encolham o quanto for preciso */
-        div[data-testid="column"] {
-            min-width: 0px !important;
-            flex: 1 1 auto !important;
-            padding: 0 !important;
-            overflow: hidden !important; /* Evita barra de rolagem se sobrar texto */
-        }
 
-        /* Ajusta o tamanho dos textos de Saldo/Receita para caberem os 3 */
-        div[data-testid="stMetricLabel"] { font-size: 0.7rem !important; text-overflow: ellipsis; }
-        div[data-testid="stMetricValue"] { font-size: 0.9rem !important; }
-        
-        /* Botões das setas menores */
-        button[kind="secondary"] {
-            padding: 0px 8px !important;
-            min-height: 35px !important;
-            line-height: 1 !important;
+        /* Ajuste dos botões de seta para não sumirem */
+        div[data-testid="column"] button {
+            padding: 0px !important;
+            min-width: 40px !important;
+            height: 40px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        /* Remove rodapé padrão para ganhar espaço */
+        /* Título do mês no celular */
+        .month-title { font-size: 1.1rem !important; }
+
+        /* MÉTRICAS (Receita, Despesa, Saldo) */
+        /* Força os textos a diminuírem para caber 3 na linha */
+        div[data-testid="stMetricLabel"] { font-size: 0.7rem !important; }
+        div[data-testid="stMetricValue"] { font-size: 0.85rem !important; }
+        
+        /* Esconder rodapé padrão do Streamlit */
         footer { display: none; }
     }
-    
-    /* Estilo dos Radio Buttons (Tipo e Frequência) */
-    div[role="radiogroup"] {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
+
+    /* Estilo dos Radio Buttons */
+    div[role="radiogroup"] { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -121,7 +103,7 @@ def cb_processar_salvamento():
     data = st.session_state.new_data
     
     if not desc:
-        st.error("Erro: Descrição vazia")
+        st.error("Descrição vazia")
         return
 
     qtd = 1
@@ -145,7 +127,6 @@ def cb_processar_salvamento():
     st.session_state['dados'].extend(novos)
     salvar_dados_arquivo(st.session_state['dados'])
     
-    # Limpa inputs
     st.session_state.new_desc = ""
     st.session_state.new_valor = 0.0
     st.session_state.expander_aberto = False
@@ -167,8 +148,8 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO (LADO A LADO NO MOBILE) ---
-# Proporção ajustada para celular: botões pequenos nas pontas
+# --- NAVEGAÇÃO ---
+# Proporção [1, 4, 1] garante que o meio tenha mais espaço, mas as pontas existam
 c1, c2, c3 = st.columns([1, 4, 1])
 with c1:
     if st.button("◀", use_container_width=True):
@@ -177,7 +158,7 @@ with c1:
 with c2:
     meses = {1:"JAN", 2:"FEV", 3:"MAR", 4:"ABR", 5:"MAI", 6:"JUN", 7:"JUL", 8:"AGO", 9:"SET", 10:"OUT", 11:"NOV", 12:"DEZ"}
     m, y = st.session_state['data_nav'].month, st.session_state['data_nav'].year
-    st.markdown(f"<h3 class='month-title'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 class='month-title' style='text-align: center; margin: 0; color: #4CAF50;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
 with c3:
     if st.button("▶", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) + pd.DateOffset(months=1)).date()
@@ -186,20 +167,17 @@ with c3:
 # --- FORMULÁRIO ---
 with st.expander("➕ Nova Transação", expanded=st.session_state.expander_aberto):
     st.write("**Tipo:**")
-    st.radio("Tipo Transação", ["Despesa", "Receita"], horizontal=True, label_visibility="collapsed", key="new_tipo")
+    st.radio("Tipo", ["Despesa", "Receita"], horizontal=True, label_visibility="collapsed", key="new_tipo")
     
-    # Colunas LADO A LADO para Valor e Data
-    c_f1, c_f2 = st.columns(2)
-    with c_f1:
-        st.number_input("Valor (R$)", min_value=0.0, step=10.0, key="new_valor")
-    with c_f2:
-        st.date_input("Data", value=date.today(), key="new_data")
+    col_a, col_b = st.columns(2)
+    with col_a: st.number_input("Valor (R$)", min_value=0.0, step=10.0, key="new_valor")
+    with col_b: st.date_input("Data", value=date.today(), key="new_data")
         
     st.selectbox("Categoria", CATEGORIAS, key="new_cat")
     st.text_input("Descrição", key="new_desc")
     
     st.write("**Frequência:**")
-    st.radio("Frequência Repetição", ["Único", "Parcelado", "Fixo Mensal"], horizontal=True, label_visibility="collapsed", key="new_freq")
+    st.radio("Frequência", ["Único", "Parcelado", "Fixo Mensal"], horizontal=True, label_visibility="collapsed", key="new_freq")
     
     if st.session_state.new_freq == "Parcelado":
         st.number_input("Nº Parcelas", min_value=2, value=2, key="new_qtd_parc")
@@ -218,11 +196,13 @@ if len(st.session_state['dados']) > 0:
     desp = df_mes[df_mes['Valor'] < 0]['Valor'].sum()
     
     st.divider()
-    # TOTAIS (LADO A LADO NO MOBILE)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Receitas", f"R$ {rec:,.2f}")
-    c2.metric("Despesas", f"R$ {desp:,.2f}")
-    c3.metric("Saldo", f"R$ {rec+desp:,.2f}")
+    
+    # SALDOS - FORÇADOS NA MESMA LINHA PELO CSS
+    c_rec, c_desp, c_saldo = st.columns(3)
+    c_rec.metric("Receitas", f"R$ {rec:,.2f}")
+    c_desp.metric("Despesas", f"R$ {desp:,.2f}")
+    c_saldo.metric("Saldo", f"R$ {rec+desp:,.2f}")
+    
     st.divider()
 
     if st.session_state['item_exclusao']:
@@ -240,7 +220,6 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # Layout dos cards mantido
             ci, cv, cb = st.columns([3, 1.5, 0.6])
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
