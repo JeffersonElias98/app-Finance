@@ -8,87 +8,96 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS: AJUSTE FINO DE ESPAÇAMENTO E TAMANHOS ---
+# --- CSS: "MODE COMPACTO EXTREMO" PARA MOBILE ---
 st.markdown("""
 <style>
-    /* 1. GERAL */
+    /* 1. REMOVE MARGENS GERAIS DO APP */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 5rem;
-        padding-left: 0.2rem !important; /* Margem quase zero pra ganhar espaço */
-        padding-right: 0.2rem !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        max-width: 100%;
     }
 
     /* 2. CABEÇALHO */
     .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
-    .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
-    .logo-scale { font-size: 2.5rem; line-height: 1; z-index: 1; }
-    .logo-money { position: absolute; top: 0px; font-size: 1.2rem; z-index: 2; }
+    .logo-wrapper { position: relative; width: 45px; height: 45px; display: flex; justify-content: center; align-items: flex-end; margin-right: 8px; }
+    .logo-scale { font-size: 2.2rem; line-height: 1; z-index: 1; }
+    .logo-money { position: absolute; top: 0px; font-size: 1rem; z-index: 2; }
     .app-name { 
         font-family: sans-serif; font-weight: 700; 
-        font-size: clamp(1.4rem, 5vw, 1.8rem); 
+        font-size: clamp(1.2rem, 5vw, 1.6rem); 
         white-space: nowrap; 
     }
 
-    /* 3. MOBILE: OTIMIZAÇÃO DE ESPAÇO */
+    /* 3. MOBILE: FORÇAR TUDO A CABER NA LARGURA */
     @media (max-width: 640px) {
         
-        /* Força colunas lado a lado sem quebrar */
+        /* A. OBRIGA LINHA ÚNICA (ROW) E REMOVE GAPS */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
             gap: 0px !important; /* Zero espaço entre colunas */
+            padding: 0 !important;
         }
         
+        /* B. COLUNAS SEM PADDING */
         div[data-testid="column"] {
             min-width: 0 !important;
             flex: 1 1 auto !important;
-            padding: 0 2px !important; /* Mínimo padding */
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
-        /* --- NAVEGAÇÃO COMPACTA --- */
-        /* Setas minúsculas */
+        /* C. SETAS DE NAVEGAÇÃO "MAGRAS" */
+        /* Remove o fundo cinza gigante e as bordas */
         button[kind="secondary"] {
             padding: 0px !important;
             width: 100% !important;
-            min-height: 30px !important; /* Altura reduzida */
-            height: 30px !important;
-            line-height: 1 !important;
-            font-size: 0.8rem !important;
+            min-height: 35px !important;
+            height: 35px !important;
+            border: none !important;       /* Sem borda */
+            background: transparent !important; /* Fundo transparente */
+            color: white !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        /* Aumenta o ícone da seta levemente para compensar */
+        button[kind="secondary"] p { font-size: 1.2rem !important; margin: 0; padding: 0; }
         
-        /* Mês bem colado nas setas */
+        /* D. MÊS NO MEIO */
         h3 {
-            font-size: 0.9rem !important;
+            font-size: 1rem !important;
             white-space: nowrap !important;
             margin: 0 !important;
             text-align: center !important;
-            line-height: 30px !important; /* Alinha com a altura da seta */
+            line-height: 35px !important;
         }
 
-        /* --- SALDOS HTML --- */
-        .saldo-label { font-size: 0.6rem !important; }
-        .saldo-value { font-size: 0.75rem !important; }
-
-        /* Esconde rodapé */
+        /* E. RODAPÉ FORA */
         footer { display: none; }
     }
     
-    /* 4. SALDOS HTML (CSS BASE) */
+    /* 4. SALDOS HTML (COMPACTO) */
     .saldos-container {
         display: flex;
         justify-content: space-between;
         background-color: #262730;
-        padding: 8px 2px; /* Padding reduzido */
-        border-radius: 10px;
+        padding: 8px 0px; /* Padding zero lateral */
+        border-radius: 8px;
         margin-bottom: 10px;
         border: 1px solid #444;
+        width: 100%;
     }
     .saldo-box { width: 33%; text-align: center; border-right: 1px solid #444; }
     .saldo-box:last-child { border-right: none; }
-    .saldo-label { font-size: 0.75rem; color: #aaa; margin-bottom: 2px; }
-    .saldo-value { font-size: 0.9rem; font-weight: bold; }
+    .saldo-label { font-size: 0.65rem; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
+    .saldo-value { font-size: 0.8rem; font-weight: bold; white-space: nowrap; }
 
     /* Container Categorias */
     .category-container {
@@ -175,9 +184,9 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO COMPACTA ---
-# Proporção [1, 3, 1] aproxima as setas do mês
-c1, c2, c3 = st.columns([1, 3, 1])
+# --- NAVEGAÇÃO "MAGRA" ---
+# Usamos [1, 8, 1]. As pontas são mínimas, apenas para o ícone.
+c1, c2, c3 = st.columns([1, 8, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -262,9 +271,9 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # AJUSTE NAS COLUNAS DE TRANSAÇÃO PARA NÃO ESTOURAR
-            # [3.5, 1.5, 1.2] dá mais espaço para descrição e aperta o valor
-            ci, cv, cb = st.columns([3.5, 1.5, 1.2])
+            # AJUSTE: Proporção para botões não caírem
+            # [3, 1.3, 1.2] é um bom balanço no mobile
+            ci, cv, cb = st.columns([3, 1.3, 1.2])
             
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
@@ -272,11 +281,9 @@ if len(st.session_state['dados']) > 0:
             
             with cv:
                 cor = "green" if row['Valor'] > 0 else "red"
-                st.markdown(f"<span style='color:{cor}; font-weight:bold; font-size: 0.9rem;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color:{cor}; font-weight:bold; font-size: 0.85rem;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
             
             with cb:
-                # Botões compactos sem colunas aninhadas (Nestes columns sometimes break)
-                # Vamos tentar colocar um do lado do outro usando colunas apertadas
                 c_a, c_b = st.columns([1, 1])
                 with c_a:
                     icon_status = "✅" if row['Status'] == "Pago" else "⏳"
