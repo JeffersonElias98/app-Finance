@@ -8,17 +8,17 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS: FORÇAR LADO A LADO (HORIZONTAL) DENTRO DOS BLOCOS ---
+# --- CSS: ESTILO MANUAL PARA GARANTIR ALINHAMENTO ---
 st.markdown("""
 <style>
-    /* 1. TOPO (Logo Seguro) */
+    /* 1. TOPO E GERAL */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 5rem;
-        padding-left: 0.5rem !important; /* Margens laterais mínimas */
+        padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
     }
-
+    
     /* 2. CABEÇALHO */
     .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
     .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
@@ -30,56 +30,61 @@ st.markdown("""
         white-space: nowrap; 
     }
 
-    /* 3. REGRAS CRÍTICAS PARA MOBILE (LADO A LADO) */
+    /* 3. MOBILE: FORÇAR LADO A LADO NA MARRA */
     @media (max-width: 640px) {
         
-        /* OBRIGA as colunas a ficarem na mesma linha (Row) */
+        /* Força colunas do Streamlit a ficarem em linha (Row) */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 2px !important; /* Espaço mínimo entre itens */
+            gap: 2px !important;
         }
-
-        /* Permite que as colunas encolham */
+        
         div[data-testid="column"] {
             min-width: 0 !important;
             flex: 1 1 auto !important;
             padding: 0 !important;
         }
 
-        /* --- NAVEGAÇÃO (SETAS E MÊS) --- */
-        /* Botões de seta bem compactos */
+        /* Botões de seta compactos */
         button[kind="secondary"] {
             padding: 0 !important;
             width: 100% !important;
-            min-height: 35px !important;
+            min-height: 38px !important;
             line-height: 1 !important;
         }
-        /* Mês no meio */
-        h3 {
-            font-size: 0.9rem !important; /* Fonte pequena para caber */
-            white-space: nowrap !important;
-            margin: 0 !important;
-            text-align: center !important;
-        }
 
-        /* --- SALDOS (RECEITA, DESPESA, SALDO) --- */
-        /* Reduzir labels para não quebrar linha */
-        div[data-testid="stMetricLabel"] { 
-            font-size: 0.6rem !important; 
-            white-space: nowrap !important;
-        }
-        /* Reduzir valores */
-        div[data-testid="stMetricValue"] { 
-            font-size: 0.8rem !important; 
-            font-weight: 700 !important;
-        }
-        
         /* Esconde rodapé */
         footer { display: none; }
     }
     
+    /* 4. ESTILO DOS SALDOS EM HTML (CUSTOMIZADO) */
+    .saldos-container {
+        display: flex;
+        justify-content: space-between;
+        background-color: #262730;
+        padding: 10px 5px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #444;
+    }
+    .saldo-box {
+        width: 33%;
+        text-align: center;
+        border-right: 1px solid #444;
+    }
+    .saldo-box:last-child { border-right: none; }
+    
+    .saldo-label { font-size: 0.75rem; color: #aaa; margin-bottom: 2px; }
+    .saldo-value { font-size: 0.9rem; font-weight: bold; }
+    
+    /* Responsividade dos Saldos */
+    @media (max-width: 640px) {
+        .saldo-label { font-size: 0.65rem; }
+        .saldo-value { font-size: 0.8rem; }
+    }
+
     /* Container Categorias */
     .category-container {
         max-height: 150px;
@@ -142,11 +147,9 @@ def cb_processar_salvamento():
     st.session_state['dados'].extend(novos)
     salvar_dados_arquivo(st.session_state['dados'])
     
-    # Limpa campos
+    # Limpa e Fecha
     st.session_state.new_desc = ""
     st.session_state.new_valor = 0.0
-    
-    # FECHA O EXPANDER (Define o estado para False)
     st.session_state['expander_aberto'] = False
 
 def cb_excluir(item):
@@ -165,8 +168,6 @@ def cb_alternar_status(item_id):
 if 'dados' not in st.session_state: st.session_state['dados'] = carregar_dados()
 if 'data_nav' not in st.session_state: st.session_state['data_nav'] = date.today()
 if 'item_exclusao' not in st.session_state: st.session_state['item_exclusao'] = None
-
-# Controle de estado do Expander
 if 'expander_aberto' not in st.session_state: st.session_state['expander_aberto'] = False
 
 CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "Moradia", "Carro", "Outros", "Salário", "Saúde", "Serviços", "Transporte", "Vestuário", "Extra"])
@@ -175,9 +176,8 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO (Forçada Lado a Lado no Mobile) ---
-# Usamos [1, 5, 1] para dar bastante espaço ao mês no meio
-c1, c2, c3 = st.columns([1, 5, 1])
+# --- NAVEGAÇÃO ---
+c1, c2, c3 = st.columns([1, 4, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -185,14 +185,13 @@ with c1:
 with c2:
     meses = {1:"JAN", 2:"FEV", 3:"MAR", 4:"ABR", 5:"MAI", 6:"JUN", 7:"JUL", 8:"AGO", 9:"SET", 10:"OUT", 11:"NOV", 12:"DEZ"}
     m, y = st.session_state['data_nav'].month, st.session_state['data_nav'].year
-    st.markdown(f"<h3 style='text-align: center; margin: 0; padding-top: 5px; color: #4CAF50;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; padding-top: 5px; color: #4CAF50; font-size: 1.1rem; white-space: nowrap;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
 with c3:
     if st.button("▶", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) + pd.DateOffset(months=1)).date()
         st.rerun()
 
-# --- FORMULÁRIO (Fecha Automaticamente) ---
-# O truque é usar session_state para controlar o expanded
+# --- FORMULÁRIO ---
 with st.expander("➕ Nova Transação", expanded=st.session_state['expander_aberto']):
     st.write("**Tipo:**")
     st.radio("Tipo", ["Despesa", "Receita"], horizontal=True, label_visibility="collapsed", key="new_tipo")
@@ -215,7 +214,6 @@ with st.expander("➕ Nova Transação", expanded=st.session_state['expander_abe
         st.number_input("Nº Parcelas", min_value=2, value=2, key="new_qtd_parc")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    # Callback altera o estado para fechar
     st.button("💾 Salvar", type="primary", use_container_width=True, on_click=cb_processar_salvamento)
 
 # --- EXIBIÇÃO ---
@@ -227,18 +225,32 @@ if len(st.session_state['dados']) > 0:
 
     rec = df_mes[df_mes['Valor'] > 0]['Valor'].sum()
     desp = df_mes[df_mes['Valor'] < 0]['Valor'].sum()
+    saldo = rec + desp
     
     st.divider()
     
-    # SALDOS (Forçados Lado a Lado no Mobile)
-    # Usei [1, 1, 1] para dividir igualmente
-    c_rec, c_desp, c_saldo = st.columns([1, 1, 1])
-    c_rec.metric("Receitas", f"R$ {rec:,.2f}")
-    c_desp.metric("Despesas", f"R$ {desp:,.2f}")
-    c_saldo.metric("Saldo", f"R$ {rec+desp:,.2f}")
+    # --- SALDOS EM HTML (GARANTE LADO A LADO E TAMANHO PERFEITO) ---
+    html_saldos = f"""
+    <div class="saldos-container">
+        <div class="saldo-box">
+            <div class="saldo-label">RECEITAS</div>
+            <div class="saldo-value" style="color: #4CAF50;">R$ {rec:,.2f}</div>
+        </div>
+        <div class="saldo-box">
+            <div class="saldo-label">DESPESAS</div>
+            <div class="saldo-value" style="color: #ff5252;">R$ {desp:,.2f}</div>
+        </div>
+        <div class="saldo-box">
+            <div class="saldo-label">SALDO</div>
+            <div class="saldo-value" style="color: {'#4CAF50' if saldo >= 0 else '#ff5252'};">R$ {saldo:,.2f}</div>
+        </div>
+    </div>
+    """
+    st.markdown(html_saldos, unsafe_allow_html=True)
     
     st.divider()
 
+    # Confirmação Exclusão
     if st.session_state['item_exclusao']:
         item = st.session_state['item_exclusao']
         st.warning(f"Apagar: **{item['Descrição']}**?")
@@ -254,7 +266,6 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # Layout do card
             ci, cv, cb = st.columns([3, 1.5, 1.2])
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
