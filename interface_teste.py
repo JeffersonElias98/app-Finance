@@ -8,10 +8,10 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS: "MODE COMPACTO EXTREMO" PARA MOBILE ---
+# --- CSS: AJUSTE FINO DE ESPAÇAMENTO E TAMANHOS ---
 st.markdown("""
 <style>
-    /* 1. REMOVE MARGENS GERAIS DO APP */
+    /* 1. GERAL */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 5rem;
@@ -31,64 +31,63 @@ st.markdown("""
         white-space: nowrap; 
     }
 
-    /* 3. MOBILE: FORÇAR TUDO A CABER NA LARGURA */
+    /* 3. MOBILE: OTIMIZAÇÃO DE ESPAÇO */
     @media (max-width: 640px) {
         
-        /* A. OBRIGA LINHA ÚNICA (ROW) E REMOVE GAPS */
+        /* A. REMOVE ESPAÇOS ENTRE COLUNAS */
         div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 0px !important; /* Zero espaço entre colunas */
-            padding: 0 !important;
+            gap: 0px !important; 
         }
         
-        /* B. COLUNAS SEM PADDING */
         div[data-testid="column"] {
             min-width: 0 !important;
             flex: 1 1 auto !important;
             padding: 0 !important;
-            margin: 0 !important;
         }
 
-        /* C. SETAS DE NAVEGAÇÃO "MAGRAS" */
-        /* Remove o fundo cinza gigante e as bordas */
+        /* B. NAVEGAÇÃO: SETAS BEM PERTO DO MÊS */
         button[kind="secondary"] {
             padding: 0px !important;
             width: 100% !important;
-            min-height: 35px !important;
-            height: 35px !important;
-            border: none !important;       /* Sem borda */
-            background: transparent !important; /* Fundo transparente */
+            min-height: 30px !important;
+            height: 30px !important;
+            border: none !important;
+            background: transparent !important;
             color: white !important;
-            box-shadow: none !important;
             margin: 0 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
         }
-        /* Aumenta o ícone da seta levemente para compensar */
+        /* Ícone da seta */
         button[kind="secondary"] p { font-size: 1.2rem !important; margin: 0; padding: 0; }
         
-        /* D. MÊS NO MEIO */
+        /* Mês */
         h3 {
-            font-size: 1rem !important;
+            font-size: 0.95rem !important;
             white-space: nowrap !important;
             margin: 0 !important;
             text-align: center !important;
-            line-height: 35px !important;
+            line-height: 30px !important;
         }
 
-        /* E. RODAPÉ FORA */
+        /* C. BOTÕES DA LISTA (LIXO E STATUS) */
+        /* Força os botões dentro da lista a serem pequenos */
+        div[data-testid="column"] button {
+             min-height: 35px !important;
+             height: 35px !important;
+             padding: 0px !important;
+             margin: 0px !important;
+        }
+
+        /* D. RODAPÉ FORA */
         footer { display: none; }
     }
     
-    /* 4. SALDOS HTML (COMPACTO) */
+    /* 4. SALDOS HTML */
     .saldos-container {
         display: flex;
         justify-content: space-between;
         background-color: #262730;
-        padding: 8px 0px; /* Padding zero lateral */
+        padding: 8px 0px;
         border-radius: 8px;
         margin-bottom: 10px;
         border: 1px solid #444;
@@ -184,9 +183,9 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO "MAGRA" ---
-# Usamos [1, 8, 1]. As pontas são mínimas, apenas para o ícone.
-c1, c2, c3 = st.columns([1, 8, 1])
+# --- NAVEGAÇÃO "COLADA" ---
+# MUDANÇA: [1, 2, 1] força o meio a ser pequeno, puxando as setas para perto
+c1, c2, c3 = st.columns([1, 2, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -271,9 +270,9 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # AJUSTE: Proporção para botões não caírem
-            # [3, 1.3, 1.2] é um bom balanço no mobile
-            ci, cv, cb = st.columns([3, 1.3, 1.2])
+            # AJUSTE NAS COLUNAS DE BOTÕES PARA NÃO CAIR
+            # [3, 1.3, 1.4] -> Aumentei um pouco a coluna dos botões (1.4)
+            ci, cv, cb = st.columns([3, 1.3, 1.4])
             
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
@@ -284,12 +283,14 @@ if len(st.session_state['dados']) > 0:
                 st.markdown(f"<span style='color:{cor}; font-weight:bold; font-size: 0.85rem;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
             
             with cb:
+                # Botões lado a lado sem nested columns que criam gap
+                # Usamos colunas internas MAS o CSS agora remove o gap delas
                 c_a, c_b = st.columns([1, 1])
                 with c_a:
                     icon_status = "✅" if row['Status'] == "Pago" else "⏳"
-                    st.button(icon_status, key=f"st_{row['ID']}", on_click=cb_alternar_status, args=(row['ID'],))
+                    st.button(icon_status, key=f"st_{row['ID']}", on_click=cb_alternar_status, args=(row['ID'],), use_container_width=True)
                 with c_b:
-                    if st.button("🗑️", key=f"del_{row['ID']}"):
+                    if st.button("🗑️", key=f"del_{row['ID']}", use_container_width=True):
                         st.session_state['item_exclusao'] = row.to_dict()
                         st.rerun()
 else:
