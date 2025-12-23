@@ -8,72 +8,53 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS "NUCLEAR" PARA MOBILE ---
+# --- CSS: ESTILO COMPACTO E VERTICAL ---
 st.markdown("""
 <style>
-    /* 1. ESPAÇO NO TOPO (Para não cortar o logo) */
+    /* Espaço no topo para o logo */
     .block-container {
-        padding-top: 4rem !important; /* Aumentei bastante para garantir */
+        padding-top: 3rem !important;
         padding-bottom: 3rem;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
     }
 
-    /* 2. CABEÇALHO */
+    /* Cabeçalho */
     .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
     .logo-wrapper { position: relative; width: 55px; height: 55px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
     .logo-scale { font-size: 3rem; line-height: 1; z-index: 1; }
     .logo-money { position: absolute; top: 2px; font-size: 1.4rem; z-index: 2; }
     .app-name { 
-        font-family: sans-serif; 
-        font-weight: 700; 
+        font-family: sans-serif; font-weight: 700; 
         font-size: clamp(1.5rem, 5vw, 2.2rem); 
         white-space: nowrap; 
     }
 
-    /* 3. FORÇAR COLUNAS LADO A LADO (PC E MOBILE) */
-    
-    /* Isso afeta TODAS as colunas do app */
-    div[data-testid="column"] {
-        display: flex;
-        flex-direction: column; /* Conteúdo dentro da coluna fica vertical */
-        min-width: 0 !important; /* PERMITE ENCOLHER (Crucial para mobile) */
+    /* Título do mês */
+    .month-title { 
+        text-align: center; font-weight: bold; color: #4CAF50; 
+        font-size: 1.2rem; margin: 10px 0;
     }
 
-    /* Regras específicas para telas pequenas (Celular) */
+    /* === AJUSTES PARA CELULAR (Mobile) === */
     @media (max-width: 640px) {
         
-        /* PROIBIR QUEBRA DE LINHA nas linhas horizontais */
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            gap: 0.5rem !important; /* Espaço pequeno entre colunas */
-            align-items: center !important;
+        /* 1. Botões mais compactos (para as setas não ficarem gigantes na vertical) */
+        button {
+            padding: 0.25rem 0.5rem !important;
+            min-height: 40px !important;
         }
 
-        /* Ajuste dos botões de seta para não sumirem */
-        div[data-testid="column"] button {
-            padding: 0px !important;
-            min-width: 40px !important;
-            height: 40px !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        /* 2. Métricas (Saldos) menores */
+        div[data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+        div[data-testid="stMetricValue"] { font-size: 1.1rem !important; }
         
-        /* Título do mês no celular */
-        .month-title { font-size: 1.1rem !important; }
-
-        /* MÉTRICAS (Receita, Despesa, Saldo) */
-        /* Força os textos a diminuírem para caber 3 na linha */
-        div[data-testid="stMetricLabel"] { font-size: 0.7rem !important; }
-        div[data-testid="stMetricValue"] { font-size: 0.85rem !important; }
+        /* 3. Ajuste de margens para não ficar muito espaçado verticalmente */
+        div[data-testid="column"] { margin-bottom: 0.5rem !important; }
         
-        /* Esconder rodapé padrão do Streamlit */
+        /* Remove rodapé para ganhar tela */
         footer { display: none; }
     }
-
-    /* Estilo dos Radio Buttons */
+    
+    /* Radio Buttons estilo botões */
     div[role="radiogroup"] { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 </style>
 """, unsafe_allow_html=True)
@@ -94,6 +75,7 @@ def salvar_dados_arquivo(dados_lista):
         with open(ARQUIVO_LOCAL, "w") as f:
             f.write("ID,SeriesID,Data,Descrição,Categoria,Valor,Tipo,Status\n")
 
+# --- CALLBACKS ---
 def cb_processar_salvamento():
     desc = st.session_state.new_desc
     val = st.session_state.new_valor
@@ -136,6 +118,16 @@ def cb_excluir(item):
     salvar_dados_arquivo(st.session_state['dados'])
     st.session_state['item_exclusao'] = None
 
+def cb_alternar_status(item_id):
+    """Alterna entre Pago e Pendente"""
+    for d in st.session_state['dados']:
+        if d['ID'] == item_id:
+            novo = "Pago" if d['Status'] == "Pendente" else "Pendente"
+            d['Status'] = novo
+            break
+    salvar_dados_arquivo(st.session_state['dados'])
+    # Não precisa de st.rerun() aqui pois o callback já força atualização
+
 # --- INICIALIZAÇÃO ---
 if 'dados' not in st.session_state: st.session_state['dados'] = carregar_dados()
 if 'data_nav' not in st.session_state: st.session_state['data_nav'] = date.today()
@@ -148,8 +140,7 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO ---
-# Proporção [1, 4, 1] garante que o meio tenha mais espaço, mas as pontas existam
+# --- NAVEGAÇÃO (Vertical no Mobile) ---
 c1, c2, c3 = st.columns([1, 4, 1])
 with c1:
     if st.button("◀", use_container_width=True):
@@ -158,7 +149,7 @@ with c1:
 with c2:
     meses = {1:"JAN", 2:"FEV", 3:"MAR", 4:"ABR", 5:"MAI", 6:"JUN", 7:"JUL", 8:"AGO", 9:"SET", 10:"OUT", 11:"NOV", 12:"DEZ"}
     m, y = st.session_state['data_nav'].month, st.session_state['data_nav'].year
-    st.markdown(f"<h3 class='month-title' style='text-align: center; margin: 0; color: #4CAF50;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 class='month-title'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
 with c3:
     if st.button("▶", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) + pd.DateOffset(months=1)).date()
@@ -197,14 +188,15 @@ if len(st.session_state['dados']) > 0:
     
     st.divider()
     
-    # SALDOS - FORÇADOS NA MESMA LINHA PELO CSS
-    c_rec, c_desp, c_saldo = st.columns(3)
-    c_rec.metric("Receitas", f"R$ {rec:,.2f}")
-    c_desp.metric("Despesas", f"R$ {desp:,.2f}")
-    c_saldo.metric("Saldo", f"R$ {rec+desp:,.2f}")
+    # SALDOS (Vertical no Mobile)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Receitas", f"R$ {rec:,.2f}")
+    c2.metric("Despesas", f"R$ {desp:,.2f}")
+    c3.metric("Saldo", f"R$ {rec+desp:,.2f}")
     
     st.divider()
 
+    # Confirmação de Exclusão
     if st.session_state['item_exclusao']:
         item = st.session_state['item_exclusao']
         st.warning(f"Apagar: **{item['Descrição']}**?")
@@ -218,20 +210,36 @@ if len(st.session_state['dados']) > 0:
             salvar_dados_arquivo(st.session_state['dados']); st.session_state['item_exclusao'] = None; st.rerun()
         if cd4.button("Sair"): st.session_state['item_exclusao'] = None; st.rerun()
 
+    # Lista de Transações
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            ci, cv, cb = st.columns([3, 1.5, 0.6])
+            # Layout: Info | Valor | Botões
+            # Ajustei a coluna de botões para caberem 2 botões (Status + Lixo)
+            ci, cv, cb = st.columns([3, 1.5, 1.2])
+            
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
                 st.caption(f"{row['Categoria']} • {row['Data'].strftime('%d/%m')}")
+            
             with cv:
                 cor = "green" if row['Valor'] > 0 else "red"
                 st.markdown(f"<span style='color:{cor}; font-weight:bold;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
-                st.caption("✅" if row['Status'] == 'Pago' else "⏳")
+                # O status texto agora é opcional, pois temos o botão
+                # st.caption("✅" if row['Status'] == 'Pago' else "⏳")
+
             with cb:
-                if st.button("🗑️", key=f"del_{row['ID']}", use_container_width=True):
-                    st.session_state['item_exclusao'] = row.to_dict()
-                    st.rerun()
+                # Botões lado a lado
+                c_btn_status, c_btn_del = st.columns(2)
+                with c_btn_status:
+                    # Botão Toggle Status: Se Pago mostra Check, Se Pendente mostra Ampulheta
+                    icon_status = "✅" if row['Status'] == "Pago" else "⏳"
+                    # Callback direto no botão
+                    st.button(icon_status, key=f"st_{row['ID']}", on_click=cb_alternar_status, args=(row['ID'],), help="Mudar Status")
+                
+                with c_btn_del:
+                    if st.button("🗑️", key=f"del_{row['ID']}"):
+                        st.session_state['item_exclusao'] = row.to_dict()
+                        st.rerun()
 else:
     st.info("Sem dados neste mês.")
 
