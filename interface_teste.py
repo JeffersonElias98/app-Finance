@@ -8,17 +8,17 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS: ESTILO MANUAL PARA GARANTIR ALINHAMENTO ---
+# --- CSS: AJUSTE FINO DE ESPAÇAMENTO E TAMANHOS ---
 st.markdown("""
 <style>
-    /* 1. TOPO E GERAL */
+    /* 1. GERAL */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 5rem;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-left: 0.2rem !important; /* Margem quase zero pra ganhar espaço */
+        padding-right: 0.2rem !important;
     }
-    
+
     /* 2. CABEÇALHO */
     .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
     .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 10px; }
@@ -30,69 +30,70 @@ st.markdown("""
         white-space: nowrap; 
     }
 
-    /* 3. MOBILE: FORÇAR LADO A LADO NA MARRA */
+    /* 3. MOBILE: OTIMIZAÇÃO DE ESPAÇO */
     @media (max-width: 640px) {
         
-        /* Força colunas do Streamlit a ficarem em linha (Row) */
+        /* Força colunas lado a lado sem quebrar */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 2px !important;
+            gap: 0px !important; /* Zero espaço entre colunas */
         }
         
         div[data-testid="column"] {
             min-width: 0 !important;
             flex: 1 1 auto !important;
-            padding: 0 !important;
+            padding: 0 2px !important; /* Mínimo padding */
         }
 
-        /* Botões de seta compactos */
+        /* --- NAVEGAÇÃO COMPACTA --- */
+        /* Setas minúsculas */
         button[kind="secondary"] {
-            padding: 0 !important;
+            padding: 0px !important;
             width: 100% !important;
-            min-height: 38px !important;
+            min-height: 30px !important; /* Altura reduzida */
+            height: 30px !important;
             line-height: 1 !important;
+            font-size: 0.8rem !important;
         }
+        
+        /* Mês bem colado nas setas */
+        h3 {
+            font-size: 0.9rem !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+            text-align: center !important;
+            line-height: 30px !important; /* Alinha com a altura da seta */
+        }
+
+        /* --- SALDOS HTML --- */
+        .saldo-label { font-size: 0.6rem !important; }
+        .saldo-value { font-size: 0.75rem !important; }
 
         /* Esconde rodapé */
         footer { display: none; }
     }
     
-    /* 4. ESTILO DOS SALDOS EM HTML (CUSTOMIZADO) */
+    /* 4. SALDOS HTML (CSS BASE) */
     .saldos-container {
         display: flex;
         justify-content: space-between;
         background-color: #262730;
-        padding: 10px 5px;
+        padding: 8px 2px; /* Padding reduzido */
         border-radius: 10px;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         border: 1px solid #444;
     }
-    .saldo-box {
-        width: 33%;
-        text-align: center;
-        border-right: 1px solid #444;
-    }
+    .saldo-box { width: 33%; text-align: center; border-right: 1px solid #444; }
     .saldo-box:last-child { border-right: none; }
-    
     .saldo-label { font-size: 0.75rem; color: #aaa; margin-bottom: 2px; }
     .saldo-value { font-size: 0.9rem; font-weight: bold; }
-    
-    /* Responsividade dos Saldos */
-    @media (max-width: 640px) {
-        .saldo-label { font-size: 0.65rem; }
-        .saldo-value { font-size: 0.8rem; }
-    }
 
     /* Container Categorias */
     .category-container {
-        max-height: 150px;
-        overflow-y: auto;
-        border: 1px solid #444;
-        padding: 5px;
-        border-radius: 8px;
-        background-color: #262730;
+        max-height: 150px; overflow-y: auto; border: 1px solid #444;
+        padding: 5px; border-radius: 8px; background-color: #262730;
     }
     div[role="radiogroup"] { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>
@@ -146,8 +147,6 @@ def cb_processar_salvamento():
 
     st.session_state['dados'].extend(novos)
     salvar_dados_arquivo(st.session_state['dados'])
-    
-    # Limpa e Fecha
     st.session_state.new_desc = ""
     st.session_state.new_valor = 0.0
     st.session_state['expander_aberto'] = False
@@ -176,8 +175,9 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO ---
-c1, c2, c3 = st.columns([1, 4, 1])
+# --- NAVEGAÇÃO COMPACTA ---
+# Proporção [1, 3, 1] aproxima as setas do mês
+c1, c2, c3 = st.columns([1, 3, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -185,7 +185,7 @@ with c1:
 with c2:
     meses = {1:"JAN", 2:"FEV", 3:"MAR", 4:"ABR", 5:"MAI", 6:"JUN", 7:"JUL", 8:"AGO", 9:"SET", 10:"OUT", 11:"NOV", 12:"DEZ"}
     m, y = st.session_state['data_nav'].month, st.session_state['data_nav'].year
-    st.markdown(f"<h3 style='text-align: center; margin: 0; padding-top: 5px; color: #4CAF50; font-size: 1.1rem; white-space: nowrap;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; margin: 0; padding-top: 5px; color: #4CAF50;'>{meses[m]} / {y}</h3>", unsafe_allow_html=True)
 with c3:
     if st.button("▶", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) + pd.DateOffset(months=1)).date()
@@ -227,9 +227,8 @@ if len(st.session_state['dados']) > 0:
     desp = df_mes[df_mes['Valor'] < 0]['Valor'].sum()
     saldo = rec + desp
     
-    st.divider()
-    
-    # --- SALDOS EM HTML (GARANTE LADO A LADO E TAMANHO PERFEITO) ---
+    # SALDOS (HTML Compacto)
+    st.markdown("<br>", unsafe_allow_html=True)
     html_saldos = f"""
     <div class="saldos-container">
         <div class="saldo-box">
@@ -247,10 +246,7 @@ if len(st.session_state['dados']) > 0:
     </div>
     """
     st.markdown(html_saldos, unsafe_allow_html=True)
-    
-    st.divider()
 
-    # Confirmação Exclusão
     if st.session_state['item_exclusao']:
         item = st.session_state['item_exclusao']
         st.warning(f"Apagar: **{item['Descrição']}**?")
@@ -266,19 +262,26 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            ci, cv, cb = st.columns([3, 1.5, 1.2])
+            # AJUSTE NAS COLUNAS DE TRANSAÇÃO PARA NÃO ESTOURAR
+            # [3.5, 1.5, 1.2] dá mais espaço para descrição e aperta o valor
+            ci, cv, cb = st.columns([3.5, 1.5, 1.2])
+            
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
                 st.caption(f"{row['Categoria']} • {row['Data'].strftime('%d/%m')}")
+            
             with cv:
                 cor = "green" if row['Valor'] > 0 else "red"
-                st.markdown(f"<span style='color:{cor}; font-weight:bold;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color:{cor}; font-weight:bold; font-size: 0.9rem;'>R$ {row['Valor']:,.0f}</span>", unsafe_allow_html=True)
+            
             with cb:
-                c1, c2 = st.columns(2)
-                with c1:
+                # Botões compactos sem colunas aninhadas (Nestes columns sometimes break)
+                # Vamos tentar colocar um do lado do outro usando colunas apertadas
+                c_a, c_b = st.columns([1, 1])
+                with c_a:
                     icon_status = "✅" if row['Status'] == "Pago" else "⏳"
                     st.button(icon_status, key=f"st_{row['ID']}", on_click=cb_alternar_status, args=(row['ID'],))
-                with c2:
+                with c_b:
                     if st.button("🗑️", key=f"del_{row['ID']}"):
                         st.session_state['item_exclusao'] = row.to_dict()
                         st.rerun()
