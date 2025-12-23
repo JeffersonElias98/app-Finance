@@ -8,70 +8,90 @@ import os
 st.set_page_config(page_title="Money Balance", page_icon="⚖️💰", layout="centered")
 ARQUIVO_LOCAL = "dados.csv"
 
-# --- CSS AVANÇADO PARA FORÇAR LAYOUT HORIZONTAL NO MOBILE ---
+# --- CSS DEFINITIVO (MOBILE IGUAL PC) ---
 st.markdown("""
 <style>
-    /* Ajuste de Topo */
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem; }
+    /* 1. Ajuste de Topo (Mais espaço para não cortar o logo) */
+    .block-container { padding-top: 3rem !important; padding-bottom: 3rem; }
 
-    /* Cabeçalho */
-    .app-header { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-    .logo-wrapper { position: relative; width: 50px; height: 50px; display: flex; justify-content: center; align-items: flex-end; margin-right: 8px; }
+    /* 2. Cabeçalho Seguro (Sem cortar) */
+    .app-header { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        margin-bottom: 20px;
+        width: 100%; /* Garante que ocupa a largura certa */
+    }
+    .logo-wrapper { 
+        position: relative; 
+        width: 50px; 
+        height: 50px; 
+        display: flex; 
+        justify-content: center; 
+        align-items: flex-end; 
+        margin-right: 10px; 
+    }
     .logo-scale { font-size: 2.5rem; line-height: 1; z-index: 1; }
-    .logo-money { position: absolute; top: 2px; font-size: 1.2rem; z-index: 2; }
-    .app-name { font-family: sans-serif; font-weight: 700; font-size: clamp(1.2rem, 4vw, 2rem); white-space: nowrap; }
+    .logo-money { position: absolute; top: 0px; font-size: 1.2rem; z-index: 2; }
+    .app-name { 
+        font-family: sans-serif; 
+        font-weight: 700; 
+        font-size: clamp(1.4rem, 5vw, 2rem); /* Fonte que diminui mas não some */
+        white-space: nowrap; 
+    }
 
-    /* Título do Mês Responsivo */
+    /* 3. Título do Mês */
     .month-title { 
         white-space: nowrap; 
         margin: 0; 
         text-align: center; 
         font-weight: bold; 
         color: #4CAF50; 
-        font-size: clamp(0.9rem, 4vw, 1.4rem); /* Diminui a fonte se a tela for pequena */
+        font-size: clamp(1rem, 4vw, 1.5rem); 
     }
 
     /* ============================================================
-       A MÁGICA DO MOBILE (Regras para telas menores que 640px)
+       FORÇAR LAYOUT LADO A LADO NO CELULAR
     ============================================================ */
     @media (max-width: 640px) {
         
-        /* 1. FORÇA as colunas a ficarem lado a lado (Horizontal) */
+        /* OBRIGA as colunas a ficarem na mesma linha */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: row !important; 
             flex-wrap: nowrap !important;
-            gap: 2px !important; /* Diminui espaço entre colunas */
+            gap: 5px !important;
+            align-items: center !important;
         }
         
-        /* 2. Permite que as colunas encolham para caber na tela */
+        /* Permite que as colunas encolham o quanto for preciso */
         div[data-testid="column"] {
             min-width: 0px !important;
             flex: 1 1 auto !important;
             padding: 0 !important;
+            overflow: hidden !important; /* Evita barra de rolagem se sobrar texto */
         }
 
-        /* 3. Ajusta botões para serem compactos no celular */
-        button {
-            padding: 0.2rem 0.5rem !important;
-            min-height: 0px !important;
-            height: auto !important;
-            font-size: 0.8rem !important;
-        }
-        
-        /* 4. Métricas (Saldo/Receita) menores para caberem 3 na linha */
-        div[data-testid="stMetricLabel"] { font-size: 0.7rem !important; }
+        /* Ajusta o tamanho dos textos de Saldo/Receita para caberem os 3 */
+        div[data-testid="stMetricLabel"] { font-size: 0.7rem !important; text-overflow: ellipsis; }
         div[data-testid="stMetricValue"] { font-size: 0.9rem !important; }
         
-        /* Esconde elementos desnecessários do Streamlit para ganhar espaço */
-        div[data-testid="stToolbar"] { display: none; }
+        /* Botões das setas menores */
+        button[kind="secondary"] {
+            padding: 0px 8px !important;
+            min-height: 35px !important;
+            line-height: 1 !important;
+        }
+        
+        /* Remove rodapé padrão para ganhar espaço */
         footer { display: none; }
     }
     
-    /* Estilo dos Radio Buttons como "Botões" */
+    /* Estilo dos Radio Buttons (Tipo e Frequência) */
     div[role="radiogroup"] {
         display: flex;
         gap: 10px;
         align-items: center;
+        flex-wrap: wrap;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -147,9 +167,9 @@ CATEGORIAS = sorted(["Alimentação", "Educação", "Investimentos", "Lazer", "M
 st.markdown('<div class="app-header"><div class="logo-wrapper"><span class="logo-scale">⚖️</span><span class="logo-money">💰</span></div><span class="app-name">Money Balance</span></div>', unsafe_allow_html=True)
 st.divider()
 
-# --- NAVEGAÇÃO (Forçada Horizontal no CSS) ---
-# Usando colunas mais apertadas para as setas [1, 5, 1]
-c1, c2, c3 = st.columns([1, 5, 1])
+# --- NAVEGAÇÃO (LADO A LADO NO MOBILE) ---
+# Proporção ajustada para celular: botões pequenos nas pontas
+c1, c2, c3 = st.columns([1, 4, 1])
 with c1:
     if st.button("◀", use_container_width=True):
         st.session_state['data_nav'] = (pd.to_datetime(st.session_state['data_nav']) - pd.DateOffset(months=1)).date()
@@ -165,11 +185,10 @@ with c3:
 
 # --- FORMULÁRIO ---
 with st.expander("➕ Nova Transação", expanded=st.session_state.expander_aberto):
-    # SOLUÇÃO DO TECLADO: Usar Radio horizontal
     st.write("**Tipo:**")
     st.radio("Tipo Transação", ["Despesa", "Receita"], horizontal=True, label_visibility="collapsed", key="new_tipo")
     
-    # Colunas para Data e Valor (Lado a lado no mobile)
+    # Colunas LADO A LADO para Valor e Data
     c_f1, c_f2 = st.columns(2)
     with c_f1:
         st.number_input("Valor (R$)", min_value=0.0, step=10.0, key="new_valor")
@@ -199,7 +218,7 @@ if len(st.session_state['dados']) > 0:
     desp = df_mes[df_mes['Valor'] < 0]['Valor'].sum()
     
     st.divider()
-    # TOTAIS (Forçado Horizontal no CSS)
+    # TOTAIS (LADO A LADO NO MOBILE)
     c1, c2, c3 = st.columns(3)
     c1.metric("Receitas", f"R$ {rec:,.2f}")
     c2.metric("Despesas", f"R$ {desp:,.2f}")
@@ -221,7 +240,7 @@ if len(st.session_state['dados']) > 0:
 
     for idx, row in df_mes.iterrows():
         with st.container(border=True):
-            # No container de cada item, mantemos proporções que funcionam
+            # Layout dos cards mantido
             ci, cv, cb = st.columns([3, 1.5, 0.6])
             with ci:
                 st.markdown(f"**{'🟢' if row['Tipo'] == 'Receita' else '🔴'} {row['Descrição']}**")
