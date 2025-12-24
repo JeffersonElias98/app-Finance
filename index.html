@@ -94,7 +94,6 @@
         .footer-credits { text-align: center; color: var(--text-color); font-size: 0.85rem; margin-top: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
         hr { border: 0; border-top: 1px solid var(--border-color); margin: 20px 0; }
         
-        /* BOTÕES SECUNDÁRIOS PARA MODAIS */
         .btn-outline { background: transparent; border: 1px solid var(--text-color); color: var(--text-color); margin-top: 10px; }
         .btn-danger { background: var(--accent-red); color: white; border: none; }
     </style>
@@ -256,7 +255,6 @@
         let itemAcao = null;
         let callbackConfirmacao = null;
 
-        // --- SISTEMA DE MODAIS PERSONALIZADOS ---
         function mostrarAviso(titulo, msg) {
             document.getElementById('avisoTitulo').innerText = titulo;
             document.getElementById('avisoMsg').innerText = msg;
@@ -275,7 +273,6 @@
             fecharModal('modalConfirmacao');
         };
 
-        // SPLASH
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
@@ -308,8 +305,10 @@
             document.getElementById('mesDisplay').innerText = `${meses[m]} / ${y}`;
 
             const filtrados = transacoes.filter(t => { const d = new Date(t.data + 'T00:00:00'); return d.getMonth()===m && d.getFullYear()===y; });
-            const receitas = filtrados.filter(t => t.tipo === 'Receita').sort((a,b) => new Date(b.data) - new Date(a.data));
-            const despesas = filtrados.filter(t => t.tipo === 'Despesa').sort((a,b) => new Date(b.data) - new Date(a.data));
+            
+            // CORRIGIDO: ORDEM CRESCENTE (DIA 1 ao 31)
+            const receitas = filtrados.filter(t => t.tipo === 'Receita').sort((a,b) => new Date(a.data) - new Date(b.data));
+            const despesas = filtrados.filter(t => t.tipo === 'Despesa').sort((a,b) => new Date(a.data) - new Date(b.data));
 
             const totalRec = receitas.reduce((acc, t) => acc + t.valor, 0);
             const totalDesp = despesas.reduce((acc, t) => acc + t.valor, 0);
@@ -484,7 +483,6 @@
             localStorage.setItem('fin_jeff', JSON.stringify(transacoes)); fecharModal('modalExc'); render();
         }
 
-        // --- BACKUP ---
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
         window.exportarDados = function() {
@@ -494,7 +492,7 @@
             const nomeArquivo = `backup_money_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
             const blob = new Blob([dados], { type: 'application/json' });
             
-            // Tenta forçar o download direto primeiro (Melhor para mobile sem HTTPS)
+            // Força download direto para funcionar melhor em mobile sem HTTPS
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = nomeArquivo;
@@ -521,7 +519,6 @@
                 };
                 leitor.readAsText(arquivo);
             });
-            // Reseta o input para permitir selecionar o mesmo arquivo novamente se falhar
             event.target.value = '';
         }
 
