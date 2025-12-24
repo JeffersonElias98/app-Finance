@@ -77,6 +77,9 @@
         .dash-card { background-color: var(--card-bg); padding: 20px; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); flex: 1; min-width: 300px; }
         .chart-container-inner { height: 200px; width: 100%; display: flex; justify-content: center; }
         
+        /* ADICIONADO: MÃOZINHA NO GRÁFICO */
+        #meuGrafico { cursor: pointer; }
+
         .health-title { font-size: 1rem; font-weight: bold; margin-bottom: 5px; color: var(--text-color); }
         .health-desc { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px; }
         .progress-container { width: 100%; height: 20px; background-color: var(--bg-color); border-radius: 10px; overflow: hidden; margin-bottom: 10px; border: 1px solid var(--border-color); }
@@ -84,17 +87,7 @@
         .health-stats { display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 5px; }
         .stat-val { font-weight: bold; }
 
-        /* MÃOZINHA CORRIGIDA NO BOTÃO + */
-        .fab { 
-            position: fixed; bottom: 30px; right: 20px; 
-            background-color: var(--accent-green); color: white; 
-            width: 60px; height: 60px; border-radius: 50%; 
-            display: flex; justify-content: center; align-items: center; 
-            font-size: 2rem; border: none; z-index: 99; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            cursor: pointer; /* Garante a mãozinha */
-            transition: transform 0.2s;
-        }
+        .fab { position: fixed; bottom: 30px; right: 20px; background-color: var(--accent-green); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; border: none; z-index: 99; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s; }
         .fab:hover { transform: scale(1.1); }
         @media (min-width: 920px) { .fab { right: calc(50% - 430px); } }
 
@@ -104,31 +97,17 @@
         .form-group { margin-bottom: 15px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); box-sizing: border-box; }
         
-        /* BORDA CORRIGIDA */
-        .btn-save { 
-            width: 100%; padding: 15px; 
-            background-color: var(--accent-green); 
-            border: none; border-radius: 10px; 
-            color: white; font-weight: bold; 
-            cursor: pointer; box-sizing: border-box; 
-        }
-        
-        /* FOOTER CORRIGIDO */
-        .footer-credits { 
-            text-align: center; color: var(--text-color); 
-            font-size: 0.85rem; margin-top: 60px; 
-            margin-bottom: 20px; /* Mais espaço para o FAB não cobrir */
-            padding-bottom: 40px; 
-            font-weight: bold; text-transform: uppercase; 
-            letter-spacing: 1px; opacity: 0.6; 
-        }
+        .btn-save { width: 100%; padding: 15px; background-color: var(--accent-green); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; box-sizing: border-box; }
+        .footer-credits { text-align: center; color: var(--text-color); font-size: 0.85rem; margin-top: 60px; margin-bottom: 20px; padding-bottom: 40px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
         
         hr { border: 0; border-top: 1px solid var(--border-color); margin: 20px 0; }
         .btn-outline { background: transparent; border: 1px solid var(--text-color); color: var(--text-color); margin-top: 10px; }
         .btn-danger { background: var(--accent-red); color: white; border: none; }
-        
-        /* MÃOZINHA NO BOTÃO FECHAR */
         .close-btn { float: right; background: none; border: none; color: var(--text-color); font-size: 2rem; cursor: pointer; line-height: 1; }
+
+        /* ESTILO EXTRA PARA LISTA DE DETALHES */
+        .detalhe-item { border-bottom: 1px solid var(--border-color); padding: 10px 0; display: flex; justify-content: space-between; }
+        .detalhe-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body id="body">
@@ -171,6 +150,7 @@
             <div class="dash-card">
                 <div style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px; font-weight: bold;">GASTOS POR CATEGORIA</div>
                 <div class="chart-container-inner"><canvas id="meuGrafico"></canvas></div>
+                <div style="text-align: center; font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px;">(Toque no gráfico para ver detalhes)</div>
             </div>
             <div class="dash-card" style="display: flex; flex-direction: column; justify-content: center;">
                 <div class="health-title">Saúde Financeira</div>
@@ -217,6 +197,14 @@
         </div>
     </div>
 
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <button onclick="fecharModal('modalDetalhes')" class="close-btn">×</button>
+            <h3 id="detalhesTitulo" style="margin-top: 0">Detalhes</h3>
+            <div id="detalhesLista" style="max-height: 300px; overflow-y: auto; margin-top: 15px;"></div>
+        </div>
+    </div>
+
     <div id="modalEditOp" class="modal">
         <div class="modal-content" style="text-align: center;">
             <h3>Editar Série</h3>
@@ -248,50 +236,21 @@
             <button onclick="fecharModal('modalConfig')" class="close-btn">×</button>
             <h3 style="margin-top: 0">Configurações</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem;">Gerencie seus dados e backups.</p>
-            
             <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
-                <button class="btn-save" style="background: var(--accent-blue);" onclick="exportarDados()">
-                    📤 Fazer Backup (Exportar)
-                </button>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">
-                    Salva arquivo .json na pasta Downloads.
-                </p>
-                
+                <button class="btn-save" style="background: var(--accent-blue);" onclick="exportarDados()">📤 Fazer Backup (Exportar)</button>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">PC: Escolher Pasta | Mobile: Pasta Downloads</p>
                 <hr>
-                
-                <label for="inputImport" class="btn-save" style="background: var(--accent-yellow); color: black; display: block; cursor: pointer; line-height: 20px;">
-                    📥 Restaurar Backup (Importar)
-                </label>
+                <label for="inputImport" class="btn-save" style="background: var(--accent-yellow); color: black; display: block; cursor: pointer; line-height: 20px;">📥 Restaurar Backup (Importar)</label>
                 <input type="file" id="inputImport" style="display: none;" accept=".json" onchange="verificarImportacao(event)">
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">
-                    Carrega um arquivo salvo.
-                </p>
-
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">Carrega um arquivo salvo.</p>
                 <hr>
-
-                <button class="btn-save btn-danger" onclick="confirmarLimpeza()">
-                    ⚠️ Resetar Tudo
-                </button>
+                <button class="btn-save btn-danger" onclick="confirmarLimpeza()">⚠️ Resetar Tudo</button>
             </div>
         </div>
     </div>
 
-    <div id="modalAviso" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <h3 id="avisoTitulo">Aviso</h3>
-            <p id="avisoMsg" style="color: var(--text-secondary);">Mensagem...</p>
-            <button class="btn-save" onclick="fecharModal('modalAviso')">OK</button>
-        </div>
-    </div>
-
-    <div id="modalConfirmacao" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <h3 id="confTitulo">Confirmação</h3>
-            <p id="confMsg" style="color: var(--text-secondary);">Tem certeza?</p>
-            <button id="btnConfSim" class="btn-save btn-danger" style="margin-bottom: 10px;">Sim, Confirmar</button>
-            <button class="btn-save btn-outline" onclick="fecharModal('modalConfirmacao')">Cancelar</button>
-        </div>
-    </div>
+    <div id="modalAviso" class="modal"><div class="modal-content" style="text-align: center;"><h3 id="avisoTitulo">Aviso</h3><p id="avisoMsg" style="color: var(--text-secondary);">Mensagem...</p><button class="btn-save" onclick="fecharModal('modalAviso')">OK</button></div></div>
+    <div id="modalConfirmacao" class="modal"><div class="modal-content" style="text-align: center;"><h3 id="confTitulo">Confirmação</h3><p id="confMsg" style="color: var(--text-secondary);">Tem certeza?</p><button id="btnConfSim" class="btn-save btn-danger" style="margin-bottom: 10px;">Sim, Confirmar</button><button class="btn-save btn-outline" onclick="fecharModal('modalConfirmacao')">Cancelar</button></div></div>
 
     <script>
         let transacoes = JSON.parse(localStorage.getItem('fin_jeff')) || [];
@@ -300,49 +259,20 @@
         let itemAcao = null;
         let callbackConfirmacao = null;
 
-        function mostrarAviso(titulo, msg) {
-            document.getElementById('avisoTitulo').innerText = titulo;
-            document.getElementById('avisoMsg').innerText = msg;
-            document.getElementById('modalAviso').style.display = 'flex';
-        }
-
-        function mostrarConfirmacao(titulo, msg, callback) {
-            document.getElementById('confTitulo').innerText = titulo;
-            document.getElementById('confMsg').innerText = msg;
-            callbackConfirmacao = callback;
-            document.getElementById('modalConfirmacao').style.display = 'flex';
-        }
-        
-        document.getElementById('btnConfSim').onclick = function() {
-            if (callbackConfirmacao) callbackConfirmacao();
-            fecharModal('modalConfirmacao');
-        };
+        function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
+        function mostrarConfirmacao(titulo, msg, callback) { document.getElementById('confTitulo').innerText = titulo; document.getElementById('confMsg').innerText = msg; callbackConfirmacao = callback; document.getElementById('modalConfirmacao').style.display = 'flex'; }
+        document.getElementById('btnConfSim').onclick = function() { if (callbackConfirmacao) callbackConfirmacao(); fecharModal('modalConfirmacao'); };
 
         window.addEventListener('load', () => {
-            setTimeout(() => {
-                const splash = document.getElementById('splash-screen');
-                splash.style.opacity = '0';
-                setTimeout(() => splash.style.visibility = 'hidden', 500);
-            }, 1200);
+            setTimeout(() => { const splash = document.getElementById('splash-screen'); splash.style.opacity = '0'; setTimeout(() => splash.style.visibility = 'hidden', 500); }, 1200);
         });
 
         function carregarPref() {
             if (localStorage.getItem('tema') === 'light') { document.body.classList.add('light-mode'); document.getElementById('btnTema').innerText = '🌙'; }
             if (localStorage.getItem('priv') === 'true') { document.body.classList.add('privacy-active'); document.getElementById('btnPriv').innerText = '🙈'; }
         }
-
-        function alternarTema() { 
-            const isLight = document.body.classList.toggle('light-mode');
-            localStorage.setItem('tema', isLight ? 'light' : 'dark');
-            document.getElementById('btnTema').innerText = isLight ? '🌙' : '☀️';
-            render();
-        }
-
-        function alternarPrivacidade() {
-            const isPriv = document.body.classList.toggle('privacy-active');
-            localStorage.setItem('priv', isPriv);
-            document.getElementById('btnPriv').innerText = isPriv ? '🙈' : '👁️';
-        }
+        function alternarTema() { const isLight = document.body.classList.toggle('light-mode'); localStorage.setItem('tema', isLight ? 'light' : 'dark'); document.getElementById('btnTema').innerText = isLight ? '🌙' : '☀️'; render(); }
+        function alternarPrivacidade() { const isPriv = document.body.classList.toggle('privacy-active'); localStorage.setItem('priv', isPriv); document.getElementById('btnPriv').innerText = isPriv ? '🙈' : '👁️'; }
 
         function render() {
             const m = dataRef.getMonth(), y = dataRef.getFullYear();
@@ -350,29 +280,18 @@
             document.getElementById('mesDisplay').innerText = `${meses[m]} / ${y}`;
 
             const filtrados = transacoes.filter(t => { const d = new Date(t.data + 'T00:00:00'); return d.getMonth()===m && d.getFullYear()===y; });
-            
             const receitas = filtrados.filter(t => t.tipo === 'Receita').sort((a,b) => new Date(a.data) - new Date(b.data));
             const despesas = filtrados.filter(t => t.tipo === 'Despesa').sort((a,b) => new Date(a.data) - new Date(b.data));
 
             const totalRec = receitas.reduce((acc, t) => acc + t.valor, 0);
             const totalDesp = despesas.reduce((acc, t) => acc + t.valor, 0);
 
-            const listaEl = document.getElementById('lista');
-            listaEl.innerHTML = '';
-
-            if (filtrados.length === 0) {
-                listaEl.innerHTML = '<div style="text-align: center; color: var(--text-secondary); margin-top: 20px;">Sem lançamentos</div>';
-            } else {
-                if (receitas.length > 0) {
-                    listaEl.innerHTML += `<div class="list-divider">Entradas 🟢</div>`;
-                    receitas.forEach(t => listaEl.appendChild(criarCard(t)));
-                }
-                if (despesas.length > 0) {
-                    listaEl.innerHTML += `<div class="list-divider">Saídas 🔴</div>`;
-                    despesas.forEach(t => listaEl.appendChild(criarCard(t)));
-                }
+            const listaEl = document.getElementById('lista'); listaEl.innerHTML = '';
+            if (filtrados.length === 0) { listaEl.innerHTML = '<div style="text-align: center; color: var(--text-secondary); margin-top: 20px;">Sem lançamentos</div>'; } 
+            else {
+                if (receitas.length > 0) { listaEl.innerHTML += `<div class="list-divider">Entradas 🟢</div>`; receitas.forEach(t => listaEl.appendChild(criarCard(t))); }
+                if (despesas.length > 0) { listaEl.innerHTML += `<div class="list-divider">Saídas 🔴</div>`; despesas.forEach(t => listaEl.appendChild(criarCard(t))); }
             }
-
             document.getElementById('recDisp').innerText = totalRec.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
             document.getElementById('despDisp').innerText = totalDesp.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
             const saldo = totalRec - totalDesp;
@@ -380,28 +299,12 @@
             document.getElementById('salDisp').style.color = saldo>=0 ? 'var(--accent-green)' : 'var(--accent-red)';
             
             const painel = document.getElementById('painelInferior');
-            if (filtrados.length > 0) {
-                painel.style.display = 'flex';
-                renderGrafico(despesas);
-                renderSaude(totalRec, despesas);
-            } else {
-                painel.style.display = 'none';
-            }
+            if (filtrados.length > 0) { painel.style.display = 'flex'; renderGrafico(despesas); renderSaude(totalRec, despesas); } else { painel.style.display = 'none'; }
         }
 
         function criarCard(t) {
-            const div = document.createElement('div');
-            div.className = `card ${t.tipo.toLowerCase()}`;
-            div.innerHTML = `
-                <div><b>${t.descricao}</b><br><small style="color:var(--text-secondary)">${t.categoria} • ${t.data.split('-').reverse().slice(0,2).join('/')}</small></div>
-                <div class="card-right">
-                    <span class="sensitive-data" style="font-weight:bold; color: ${t.tipo==='Receita'?'var(--accent-green)':'var(--accent-red)'}">R$ ${t.valor.toFixed(2)}</span>
-                    <div class="card-actions">
-                        <button class="action-btn" onclick="altStatus('${t.id}')">${t.status==='Pago'?'✅':'⏳'}</button>
-                        <button class="action-btn" style="color: var(--accent-yellow)" onclick="prepararEdicao('${t.id}')">✏️</button>
-                        <button class="action-btn" onclick="prepararExclusao('${t.id}')">🗑️</button>
-                    </div>
-                </div>`;
+            const div = document.createElement('div'); div.className = `card ${t.tipo.toLowerCase()}`;
+            div.innerHTML = `<div><b>${t.descricao}</b><br><small style="color:var(--text-secondary)">${t.categoria} • ${t.data.split('-').reverse().slice(0,2).join('/')}</small></div><div class="card-right"><span class="sensitive-data" style="font-weight:bold; color: ${t.tipo==='Receita'?'var(--accent-green)':'var(--accent-red)'}">R$ ${t.valor.toFixed(2)}</span><div class="card-actions"><button class="action-btn" onclick="altStatus('${t.id}')">${t.status==='Pago'?'✅':'⏳'}</button><button class="action-btn" style="color: var(--accent-yellow)" onclick="prepararEdicao('${t.id}')">✏️</button><button class="action-btn" onclick="prepararExclusao('${t.id}')">🗑️</button></div></div>`;
             return div;
         }
 
@@ -421,22 +324,64 @@
                     labels: Object.keys(cats),
                     datasets: [{ data: Object.values(cats), backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF','#71B37C','#EC932F','#8D6E63'], borderWidth: 0 }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: textColor, font: {size:10} } } }, cutout: '65%' }
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'right', labels: { color: textColor, font: {size:10} } } }, 
+                    cutout: '65%',
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const categoria = chartObj.data.labels[index];
+                            mostrarDetalhesCategoria(categoria);
+                        }
+                    }
+                }
             });
+        }
+
+        // --- NOVA FUNÇÃO: DETALHES DA CATEGORIA ---
+        function mostrarDetalhesCategoria(categoria) {
+            const m = dataRef.getMonth(), y = dataRef.getFullYear();
+            const itens = transacoes.filter(t => {
+                const d = new Date(t.data + 'T00:00:00');
+                return t.tipo === 'Despesa' && t.categoria === categoria && d.getMonth() === m && d.getFullYear() === y;
+            }).sort((a,b) => new Date(a.data) - new Date(b.data));
+
+            const total = itens.reduce((acc, t) => acc + t.valor, 0);
+            const listaEl = document.getElementById('detalhesLista');
+            listaEl.innerHTML = '';
+
+            if (itens.length === 0) { listaEl.innerHTML = '<p style="text-align:center">Nenhum item.</p>'; }
+            else {
+                itens.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = 'detalhe-item';
+                    div.innerHTML = `
+                        <div>
+                            <span style="font-weight:bold; font-size: 0.9rem;">${t.descricao}</span><br>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary)">${t.data.split('-').reverse().slice(0,2).join('/')}</span>
+                        </div>
+                        <span class="sensitive-data" style="color: var(--accent-red); font-weight: bold;">R$ ${t.valor.toFixed(2)}</span>
+                    `;
+                    listaEl.appendChild(div);
+                });
+                // Total
+                const divTotal = document.createElement('div');
+                divTotal.style.marginTop = '15px'; divTotal.style.textAlign = 'right'; divTotal.style.fontWeight = 'bold'; divTotal.style.fontSize = '1.1rem';
+                divTotal.innerHTML = `Total: <span style="color: var(--accent-red)">R$ ${total.toFixed(2)}</span>`;
+                listaEl.appendChild(divTotal);
+            }
+
+            document.getElementById('detalhesTitulo').innerText = categoria;
+            document.getElementById('modalDetalhes').style.display = 'flex';
         }
 
         function renderSaude(receitaTotal, despesas) {
             const despesasGastas = despesas.filter(t => t.categoria !== 'Investimentos').reduce((acc, t) => acc + t.valor, 0);
-            let percent = 0;
-            if (receitaTotal > 0) percent = (despesasGastas / receitaTotal) * 100;
+            let percent = receitaTotal > 0 ? (despesasGastas / receitaTotal) * 100 : 0;
             const visualPercent = Math.min(percent, 100);
-            const bar = document.getElementById('progBar');
-            const txt = document.getElementById('progText');
-            const msg = document.getElementById('msgSaude');
-
-            bar.style.width = `${visualPercent}%`;
-            txt.innerText = `${percent.toFixed(1)}%`;
-
+            const bar = document.getElementById('progBar'); const msg = document.getElementById('msgSaude');
+            bar.style.width = `${visualPercent}%`; document.getElementById('progText').innerText = `${percent.toFixed(1)}%`;
             if (percent < 50) { bar.style.backgroundColor = 'var(--accent-blue)'; msg.innerText = "Finanças sob controle! 🔵"; msg.style.color = 'var(--accent-blue)'; } 
             else if (percent < 80) { bar.style.backgroundColor = 'var(--accent-yellow)'; msg.innerText = "Atenção aos gastos. 🟡"; msg.style.color = 'var(--accent-yellow)'; } 
             else { bar.style.backgroundColor = 'var(--accent-red)'; msg.innerText = "Cuidado! Renda comprometida. 🔴"; msg.style.color = 'var(--accent-red)'; }
@@ -446,139 +391,78 @@
             document.getElementById('modalCad').style.display = 'flex';
             if (!edit) {
                 document.getElementById('tituloModal').innerText = "Nova Transação";
-                document.getElementById('editId').value = "";
-                document.getElementById('desc').value = "";
-                document.getElementById('valor').value = "";
-                document.getElementById('data').valueAsDate = new Date();
-                document.getElementById('secaoFreq').style.display = 'block';
+                document.getElementById('editId').value = ""; document.getElementById('desc').value = ""; document.getElementById('valor').value = "";
+                document.getElementById('data').valueAsDate = new Date(); document.getElementById('secaoFreq').style.display = 'block';
             }
         }
-
         window.prepararEdicao = function(id) {
-            const t = transacoes.find(x => x.id === id);
-            if (!t) return;
-            document.getElementById('editId').value = t.id;
-            document.getElementById('tipo').value = t.tipo;
-            document.getElementById('valor').value = t.valor;
-            document.getElementById('data').value = t.data;
-            document.getElementById('cat').value = t.categoria;
-            document.getElementById('desc').value = t.descricao;
-            document.getElementById('secaoFreq').style.display = 'none';
-            document.getElementById('tituloModal').innerText = "Editar Transação";
-            document.getElementById('modalCad').style.display = 'flex';
+            const t = transacoes.find(x => x.id === id); if (!t) return;
+            document.getElementById('editId').value = t.id; document.getElementById('tipo').value = t.tipo; document.getElementById('valor').value = t.valor;
+            document.getElementById('data').value = t.data; document.getElementById('cat').value = t.categoria; document.getElementById('desc').value = t.descricao;
+            document.getElementById('secaoFreq').style.display = 'none'; document.getElementById('tituloModal').innerText = "Editar Transação"; document.getElementById('modalCad').style.display = 'flex';
         }
-
         window.salvar = function() {
-            const id = document.getElementById('editId').value;
-            const v = parseFloat(document.getElementById('valor').value);
-            const d = document.getElementById('data').value;
-            const ds = document.getElementById('desc').value;
-            if (!ds || isNaN(v) || !d) return mostrarAviso("Erro", "Preencha todos os campos corretamente.");
-
+            const id = document.getElementById('editId').value; const v = parseFloat(document.getElementById('valor').value); const d = document.getElementById('data').value; const ds = document.getElementById('desc').value;
+            if (!ds || isNaN(v) || !d) return mostrarAviso("Erro", "Preencha tudo.");
             if (id) {
                 const t = transacoes.find(x => x.id === id);
-                if (t.seriesId) { itemAcao = t; document.getElementById('modalEditOp').style.display = 'flex'; }
-                else { confirmarEdicao('unico'); }
+                if (t.seriesId) { itemAcao = t; document.getElementById('modalEditOp').style.display = 'flex'; } else { confirmarEdicao('unico'); }
             } else {
-                const f = document.getElementById('freq').value;
-                let q = f==='Parcelado' ? parseInt(document.getElementById('numParc').value) : (f==='Fixo'?12:1);
-                const sId = f==='Unico' ? null : crypto.randomUUID();
+                const f = document.getElementById('freq').value; let q = f==='Parcelado' ? parseInt(document.getElementById('numParc').value) : (f==='Fixo'?12:1); const sId = f==='Unico' ? null : crypto.randomUUID();
                 for (let i=0; i<q; i++) {
                     let dateObj = new Date(d + 'T00:00:00'); dateObj.setMonth(dateObj.getMonth() + i);
                     transacoes.push({ id: crypto.randomUUID(), seriesId: sId, data: dateObj.toISOString().split('T')[0], valor: f==='Parcelado'?v/q:v, tipo: document.getElementById('tipo').value, categoria: document.getElementById('cat').value, descricao: f==='Parcelado'?`${ds} (${i+1}/${q})`:ds, status: 'Pendente' });
-                }
-                finalizar();
+                } finalizar();
             }
         }
-
-        window.confirmarEdicao = function(modo) {
-            const id = document.getElementById('editId').value;
-            const tOrig = transacoes.find(x => x.id === id);
-            const novosDados = { tipo: document.getElementById('tipo').value, valor: parseFloat(document.getElementById('valor').value), data: document.getElementById('data').value, categoria: document.getElementById('cat').value, descricao: document.getElementById('desc').value };
-            
-            if (modo === 'unico') { Object.assign(tOrig, novosDados); } 
-            else {
-                transacoes.forEach(t => {
-                    if (t.seriesId === tOrig.seriesId) {
-                        if (modo === 'futuros' && t.data < tOrig.data) return;
-                        t.tipo = novosDados.tipo; t.valor = novosDados.valor; t.categoria = novosDados.categoria; t.descricao = novosDados.descricao;
-                        if (t.id === id) t.data = novosDados.data;
-                    }
-                });
-            }
+        window.confirmarEdicao = function(m) {
+            const id = document.getElementById('editId').value; const tOrig = transacoes.find(x => x.id === id);
+            const nD = { tipo: document.getElementById('tipo').value, valor: parseFloat(document.getElementById('valor').value), data: document.getElementById('data').value, categoria: document.getElementById('cat').value, descricao: document.getElementById('desc').value };
+            if (m === 'unico') Object.assign(tOrig, nD);
+            else transacoes.forEach(t => { if (t.seriesId === tOrig.seriesId) { if (m === 'futuros' && t.data < tOrig.data) return; t.tipo = nD.tipo; t.valor = nD.valor; t.categoria = nD.categoria; t.descricao = nD.descricao; if (t.id === id) t.data = nD.data; } });
             finalizar();
         }
-
         function finalizar() { localStorage.setItem('fin_jeff', JSON.stringify(transacoes)); fecharModal('modalCad'); fecharModal('modalEditOp'); render(); }
         window.fecharModal = function(id) { document.getElementById(id).style.display = 'none'; }
         window.mudarMes = function(v) { dataRef.setMonth(dataRef.getMonth() + v); render(); }
         window.altStatus = function(id) { const t = transacoes.find(x=>x.id===id); t.status = t.status==='Pago'?'Pendente':'Pago'; finalizar(); }
         
-        window.prepararExclusao = function(id) {
-            itemAcao = transacoes.find(x => x.id === id);
-            document.getElementById('modalExc').style.display = 'flex';
-            document.getElementById('optExcSer').style.display = itemAcao.seriesId ? 'block' : 'none';
-            document.getElementById('optExcUni').style.display = itemAcao.seriesId ? 'none' : 'block';
-        }
-        window.confirmarExclusao = function(m) {
-            if (m === 'unico') transacoes = transacoes.filter(x => x.id !== itemAcao.id);
-            else if (m === 'futuros') transacoes = transacoes.filter(x => !(x.seriesId === itemAcao.seriesId && x.data >= itemAcao.data));
-            else transacoes = transacoes.filter(x => x.seriesId !== itemAcao.seriesId);
-            localStorage.setItem('fin_jeff', JSON.stringify(transacoes)); fecharModal('modalExc'); render();
-        }
-
+        window.prepararExclusao = function(id) { itemAcao = transacoes.find(x => x.id === id); document.getElementById('modalExc').style.display = 'flex'; document.getElementById('optExcSer').style.display = itemAcao.seriesId ? 'block' : 'none'; document.getElementById('optExcUni').style.display = itemAcao.seriesId ? 'none' : 'block'; }
+        window.confirmarExclusao = function(m) { if (m === 'unico') transacoes = transacoes.filter(x => x.id !== itemAcao.id); else if (m === 'futuros') transacoes = transacoes.filter(x => !(x.seriesId === itemAcao.seriesId && x.data >= itemAcao.data)); else transacoes = transacoes.filter(x => x.seriesId !== itemAcao.seriesId); localStorage.setItem('fin_jeff', JSON.stringify(transacoes)); fecharModal('modalExc'); render(); }
+        
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
-        // --- FUNÇÃO DE EXPORTAÇÃO SIMPLIFICADA (A que funcionava) ---
-        window.exportarDados = function() {
+        // --- FUNÇÃO EXPORTAR (MISTA) ---
+        window.exportarDados = async function() {
             const dados = localStorage.getItem('fin_jeff');
-            if (!dados || dados === "[]") return mostrarAviso("Vazio", "Não há dados para exportar.");
-            
-            const nomeArquivo = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+            if (!dados || dados === "[]") return mostrarAviso("Vazio", "Sem dados.");
+            const nome = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
             const blob = new Blob([dados], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
             
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = nomeArquivo;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            // Removemos o URL.revokeObjectURL imediatamente pois no mobile isso pode matar o download
-            setTimeout(() => URL.revokeObjectURL(url), 60000); 
+            // 1. TENTA PC
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] });
+                    const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); mostrarAviso("Sucesso", "Salvo no PC!"); return;
+                } catch (e) { return; }
+            }
+            // 2. MOBILE (MÉTODO CLÁSSICO)
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
 
         window.verificarImportacao = function(event) {
-            const arquivo = event.target.files[0];
-            if (!arquivo) return;
-            
-            mostrarConfirmacao("Restaurar Backup?", "Isso irá substituir todos os dados atuais pelos do arquivo.", function() {
+            const arquivo = event.target.files[0]; if (!arquivo) return;
+            mostrarConfirmacao("Restaurar?", "Substituir dados atuais?", function() {
                 const leitor = new FileReader();
-                leitor.onload = function(e) {
-                    try {
-                        const json = JSON.parse(e.target.result);
-                        if (Array.isArray(json)) {
-                            localStorage.setItem('fin_jeff', JSON.stringify(json));
-                            mostrarAviso("Sucesso", "Backup restaurado! O app será reiniciado.");
-                            setTimeout(() => location.reload(), 2000);
-                        } else { mostrarAviso("Erro", "Arquivo inválido."); }
-                    } catch (erro) { mostrarAviso("Erro", "Erro ao ler arquivo."); }
-                };
+                leitor.onload = function(e) { try { const json = JSON.parse(e.target.result); if (Array.isArray(json)) { localStorage.setItem('fin_jeff', JSON.stringify(json)); mostrarAviso("Sucesso", "Reiniciando..."); setTimeout(() => location.reload(), 2000); } else { mostrarAviso("Erro", "Inválido."); } } catch (erro) { mostrarAviso("Erro", "Erro ao ler."); } };
                 leitor.readAsText(arquivo);
-            });
-            event.target.value = '';
+            }); event.target.value = '';
         }
-
-        window.confirmarLimpeza = function() {
-            mostrarConfirmacao("Resetar Tudo?", "Tem certeza? Isso apagará TODOS os seus lançamentos.", function() {
-                localStorage.removeItem('fin_jeff');
-                location.reload();
-            });
-        }
+        window.confirmarLimpeza = function() { mostrarConfirmacao("Resetar?", "Apagar tudo?", function() { localStorage.removeItem('fin_jeff'); location.reload(); }); }
 
         carregarPref(); render();
-        window.onclick = e => { if (e.target.className.includes('modal')) { fecharModal('modalCad'); fecharModal('modalExc'); fecharModal('modalEditOp'); fecharModal('modalConfig'); fecharModal('modalAviso'); fecharModal('modalConfirmacao'); } }
+        window.onclick = e => { if (e.target.className.includes('modal')) { fecharModal('modalCad'); fecharModal('modalExc'); fecharModal('modalEditOp'); fecharModal('modalConfig'); fecharModal('modalAviso'); fecharModal('modalConfirmacao'); fecharModal('modalDetalhes'); } }
     </script>
 </body>
 </html>
