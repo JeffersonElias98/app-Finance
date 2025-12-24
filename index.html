@@ -348,7 +348,7 @@
 
             const filtrados = transacoes.filter(t => { const d = new Date(t.data + 'T00:00:00'); return d.getMonth()===m && d.getFullYear()===y; });
             
-            // ORDEM CRONOLÓGICA (CRESCENTE: Dia 1 -> Dia 31)
+            // ORDEM: Dia 1 -> Dia 31
             const receitas = filtrados.filter(t => t.tipo === 'Receita').sort((a,b) => new Date(a.data) - new Date(b.data));
             const despesas = filtrados.filter(t => t.tipo === 'Despesa').sort((a,b) => new Date(a.data) - new Date(b.data));
 
@@ -528,17 +528,17 @@
         // --- BACKUP ---
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
-        // --- FUNÇÃO DE EXPORTAÇÃO HÍBRIDA (VERSÃO 64.0) ---
+        // --- FUNÇÃO DE EXPORTAÇÃO BLINDADA (VERSÃO 65.0) ---
         window.exportarDados = async function() {
             const dados = localStorage.getItem('fin_jeff');
             if (!dados || dados === "[]") return mostrarAviso("Vazio", "Não há dados para exportar.");
             
             const nomeArquivo = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
-            const blob = new Blob([dados], { type: 'application/json' });
-
-            // 1. COMPUTADOR: Tenta usar a janela "Salvar Como"
+            
+            // 1. TENTA COMPUTADOR (Seletor de Arquivos)
             if (window.showSaveFilePicker) {
                 try {
+                    const blob = new Blob([dados], { type: 'application/json' });
                     const handle = await window.showSaveFilePicker({ 
                         suggestedName: nomeArquivo, 
                         types: [{ description: 'Arquivo JSON', accept: {'application/json': ['.json']} }] 
@@ -548,10 +548,12 @@
                     await writable.close();
                     mostrarAviso("Sucesso", "Backup salvo!");
                     return;
-                } catch (err) { return; } // Cancelado pelo usuário
+                } catch (err) { return; } // Cancelado
             }
 
-            // 2. CELULAR / OUTROS: Download direto (Link Clássico)
+            // 2. FALLBACK PARA CELULAR (Força Download como Octet-Stream)
+            // 'application/octet-stream' engana o Android para ele não tentar abrir com o Drive.
+            const blob = new Blob([dados], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -560,8 +562,6 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            // Aviso opcional no mobile
-            // mostrarAviso("Download", "Arquivo baixado.");
         }
 
         window.verificarImportacao = function(event) {
