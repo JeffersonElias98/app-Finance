@@ -246,7 +246,7 @@
             <p style="color: var(--text-secondary); font-size: 0.9rem;">Gerencie seus dados e backups.</p>
             <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
                 <button class="btn-save" style="background: var(--accent-blue);" onclick="exportarDados()">📤 Fazer Backup (Exportar)</button>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">PC: Escolher Pasta | Mobile: Pasta Downloads</p>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">Salva arquivo .json na pasta Downloads.</p>
                 <hr>
                 <label for="inputImport" class="btn-save" style="background: var(--accent-yellow); color: black; display: block; cursor: pointer; line-height: 20px;">📥 Restaurar Backup (Importar)</label>
                 <input type="file" id="inputImport" style="display: none;" accept=".json" onchange="verificarImportacao(event)">
@@ -439,35 +439,22 @@
         
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
-        // --- FUNÇÃO EXPORTAR (SEPARAÇÃO LÓGICA PARA MOBILE/PC) ---
+        // --- EXPORTAR SIMPLIFICADO (SEM DIFERENCIAÇÃO PC/MOBILE) ---
+        // Este método força o download direto em qualquer dispositivo
         window.exportarDados = function() {
             const dados = localStorage.getItem('fin_jeff');
             if (!dados || dados === "[]") return mostrarAviso("Vazio", "Sem dados.");
             const nome = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+            const blob = new Blob([dados], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             
-            // PC (MODERNO)
-            if (window.showSaveFilePicker) {
-                exportarPC(dados, nome);
-            } else {
-                // MOBILE (CLÁSSICO SÍNCRONO - FORÇA DOWNLOAD)
-                const blob = new Blob([dados], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = nome;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            }
-        }
-
-        async function exportarPC(dados, nome) {
-            try {
-                const blob = new Blob([dados], { type: 'application/json' });
-                const handle = await window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] });
-                const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); mostrarAviso("Sucesso", "Salvo no PC!");
-            } catch (e) { /* Cancelado */ }
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nome;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
         }
 
         window.verificarImportacao = function(event) {
