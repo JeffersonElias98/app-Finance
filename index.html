@@ -110,7 +110,7 @@
             color: white; 
             font-weight: bold; 
             cursor: pointer; 
-            box-sizing: border-box; /* Correção essencial */
+            box-sizing: border-box; 
         }
         
         /* RODAPÉ AJUSTADO */
@@ -539,28 +539,30 @@
             if (!dados || dados === "[]") return mostrarAviso("Vazio", "Não há dados para exportar.");
             
             const nomeArquivo = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
-            const blob = new Blob([dados], { type: 'application/json' });
+            
+            // CORREÇÃO ANDROID 0 BYTE: Criar File direto da string
+            const arquivo = new File([dados], nomeArquivo, { type: "text/plain" });
 
-            // PC: Tenta salvar direto (Salvar Como)
+            // PC: Salvar Como
             if (window.showSaveFilePicker) {
                 try {
                     const handle = await window.showSaveFilePicker({ suggestedName: nomeArquivo, types: [{ description: 'Arquivo JSON', accept: {'application/json': ['.json']} }] });
                     const writable = await handle.createWritable();
-                    await writable.write(blob); await writable.close();
+                    await writable.write(dados); await writable.close();
                     mostrarAviso("Sucesso", "Backup salvo!");
-                } catch (err) {} // Cancelou
+                } catch (err) {}
                 return;
             }
 
-            // Mobile: Tenta compartilhar
-            const arquivo = new File([blob], nomeArquivo, { type: 'application/json' });
+            // Mobile: Compartilhar
             if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
                 try { await navigator.share({ files: [arquivo], title: 'Backup Money Balance' }); }
-                catch (err) { downloadSimples(blob, nomeArquivo); }
-            } else { downloadSimples(blob, nomeArquivo); }
+                catch (err) { downloadSimples(dados, nomeArquivo); } // Fallback
+            } else { downloadSimples(dados, nomeArquivo); }
         }
 
-        function downloadSimples(blob, nome) {
+        function downloadSimples(conteudo, nome) {
+            const blob = new Blob([conteudo], { type: 'application/json' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
