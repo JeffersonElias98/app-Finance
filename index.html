@@ -107,7 +107,6 @@
         .detalhe-item { border-bottom: 1px solid var(--border-color); padding: 10px 0; display: flex; justify-content: space-between; }
         .detalhe-item:last-child { border-bottom: none; }
 
-        /* ESTILOS DO SELETOR DE GRÁFICO */
         .chart-selector { display: flex; justify-content: center; margin-bottom: 15px; background-color: var(--bg-color); border-radius: 8px; padding: 4px; border: 1px solid var(--border-color); width: fit-content; margin-left: auto; margin-right: auto; }
         .chart-btn { background: none; border: none; color: var(--text-secondary); padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.3s; }
         .chart-btn.active { background-color: var(--card-bg); color: var(--text-color); font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
@@ -267,7 +266,7 @@
         let chartObj = null;
         let itemAcao = null;
         let callbackConfirmacao = null;
-        let tipoGraficoAtual = 'doughnut'; // 'doughnut' ou 'bar'
+        let tipoGraficoAtual = 'doughnut';
 
         function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
         function mostrarConfirmacao(titulo, msg, callback) { document.getElementById('confTitulo').innerText = titulo; document.getElementById('confMsg').innerText = msg; callbackConfirmacao = callback; document.getElementById('modalConfirmacao').style.display = 'flex'; }
@@ -320,14 +319,9 @@
             return div;
         }
 
-        // --- LÓGICA DO GRÁFICO (PIZZA E BARRA) ---
         function alterarTipoGrafico(tipo) {
-            tipoGraficoAtual = tipo;
-            localStorage.setItem('tipoGrafico', tipo);
-            atualizarBotoesGrafico();
-            render(); // Re-renderiza para atualizar o gráfico
+            tipoGraficoAtual = tipo; localStorage.setItem('tipoGrafico', tipo); atualizarBotoesGrafico(); render();
         }
-
         function atualizarBotoesGrafico() {
             document.getElementById('btnPizza').className = `chart-btn ${tipoGraficoAtual === 'doughnut' ? 'active' : ''}`;
             document.getElementById('btnBarra').className = `chart-btn ${tipoGraficoAtual === 'bar' ? 'active' : ''}`;
@@ -338,119 +332,55 @@
             if (!despesas.length) { wrapper.style.display = 'none'; return; }
             wrapper.style.display = 'block';
 
-            // Agrupa e Soma
-            const cats = {};
-            let total = 0;
-            despesas.forEach(t => { 
-                cats[t.categoria] = (cats[t.categoria] || 0) + t.valor;
-                total += t.valor;
-            });
-
-            // Ordena do maior para o menor (Importante para o gráfico de barras ficar bonito)
+            const cats = {}; let total = 0;
+            despesas.forEach(t => { cats[t.categoria] = (cats[t.categoria] || 0) + t.valor; total += t.valor; });
             const sortedEntries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
-            const labels = sortedEntries.map(e => {
-                const perc = ((e[1] / total) * 100).toFixed(1);
-                return `${e[0]} (${perc}%)`; // Label com Porcentagem
-            });
+            const labels = sortedEntries.map(e => `${e[0]} (${((e[1] / total) * 100).toFixed(1)}%)`);
             const dataValues = sortedEntries.map(e => e[1]);
             
             if (chartObj) chartObj.destroy();
             const textColor = document.body.classList.contains('light-mode')?'#333':'#fff';
             
-            // Configuração diferenciada para Pizza vs Barra
-            const config = {
+            chartObj = new Chart(document.getElementById('meuGrafico'), {
                 type: tipoGraficoAtual,
                 data: {
                     labels: labels,
                     datasets: [{ 
                         data: dataValues, 
                         backgroundColor: ['#36A2EB','#9966FF','#FF6384','#4BC0C0','#FF9F40','#FFCD56','#C9CBCF','#71B37C','#EC932F','#8D6E63'],
-                        borderWidth: 0,
-                        barThickness: 20 // Espessura da barra
+                        borderWidth: 0, barThickness: 20
                     }]
                 },
                 options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    indexAxis: tipoGraficoAtual === 'bar' ? 'y' : 'x', // Barra Horizontal
+                    responsive: true, maintainAspectRatio: false, indexAxis: tipoGraficoAtual === 'bar' ? 'y' : 'x',
                     plugins: { 
-                        legend: { 
-                            display: tipoGraficoAtual === 'doughnut', // Só mostra legenda na Pizza
-                            position: 'right', 
-                            labels: { color: textColor, font: {size:10} } 
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    // Formata o tooltip para mostrar valor monetário
-                                    let label = context.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.y !== null) {
-                                        // Barras horizontais usam X para valor
-                                        const val = tipoGraficoAtual === 'bar' ? context.parsed.x : context.parsed;
-                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+                        legend: { display: tipoGraficoAtual === 'doughnut', position: 'right', labels: { color: textColor, font: {size:10} } },
+                        tooltip: { callbacks: { label: function(c) { let l = c.label || ''; if (l) l += ': '; if (c.parsed.y !== null) l += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tipoGraficoAtual === 'bar' ? c.parsed.x : c.parsed); return l; } } }
                     }, 
-                    scales: {
-                        x: { display: false }, // Esconde grades
-                        y: { 
-                            display: tipoGraficoAtual === 'bar', // Só mostra eixo Y na Barra
-                            ticks: { color: textColor, font: {size: 11} },
-                            grid: { display: false } // Sem grade
-                        }
-                    },
+                    scales: { x: { display: false }, y: { display: tipoGraficoAtual === 'bar', ticks: { color: textColor, font: {size: 11} }, grid: { display: false } } },
                     cutout: tipoGraficoAtual === 'doughnut' ? '65%' : 0,
-                    onClick: (evt, elements) => {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            // Remove a porcentagem do nome para buscar os detalhes
-                            const categoriaRaw = chartObj.data.labels[index]; 
-                            const categoriaNome = categoriaRaw.split(' (')[0];
-                            mostrarDetalhesCategoria(categoriaNome);
-                        }
-                    }
+                    onClick: (evt, elements) => { if (elements.length > 0) { const index = elements[0].index; const categoriaNome = chartObj.data.labels[index].split(' (')[0]; mostrarDetalhesCategoria(categoriaNome); } }
                 }
-            };
-
-            chartObj = new Chart(document.getElementById('meuGrafico'), config);
+            });
         }
 
         function mostrarDetalhesCategoria(categoria) {
             const m = dataRef.getMonth(), y = dataRef.getFullYear();
-            const itens = transacoes.filter(t => {
-                const d = new Date(t.data + 'T00:00:00');
-                return t.tipo === 'Despesa' && t.categoria === categoria && d.getMonth() === m && d.getFullYear() === y;
-            }).sort((a,b) => new Date(a.data) - new Date(b.data));
-
+            const itens = transacoes.filter(t => { const d = new Date(t.data + 'T00:00:00'); return t.tipo === 'Despesa' && t.categoria === categoria && d.getMonth() === m && d.getFullYear() === y; }).sort((a,b) => new Date(a.data) - new Date(b.data));
             const total = itens.reduce((acc, t) => acc + t.valor, 0);
-            const listaEl = document.getElementById('detalhesLista');
-            listaEl.innerHTML = '';
+            const listaEl = document.getElementById('detalhesLista'); listaEl.innerHTML = '';
 
             if (itens.length === 0) { listaEl.innerHTML = '<p style="text-align:center">Nenhum item.</p>'; }
             else {
                 itens.forEach(t => {
-                    const div = document.createElement('div');
-                    div.className = 'detalhe-item';
-                    div.innerHTML = `
-                        <div>
-                            <span style="font-weight:bold; font-size: 0.9rem;">${t.descricao}</span><br>
-                            <span style="font-size: 0.75rem; color: var(--text-secondary)">${t.data.split('-').reverse().slice(0,2).join('/')}</span>
-                        </div>
-                        <span class="sensitive-data" style="color: var(--accent-red); font-weight: bold;">R$ ${t.valor.toFixed(2)}</span>
-                    `;
+                    const div = document.createElement('div'); div.className = 'detalhe-item';
+                    div.innerHTML = `<div><span style="font-weight:bold; font-size: 0.9rem;">${t.descricao}</span><br><span style="font-size: 0.75rem; color: var(--text-secondary)">${t.data.split('-').reverse().slice(0,2).join('/')}</span></div><span class="sensitive-data" style="color: var(--accent-red); font-weight: bold;">R$ ${t.valor.toFixed(2)}</span>`;
                     listaEl.appendChild(div);
                 });
-                const divTotal = document.createElement('div');
-                divTotal.style.marginTop = '15px'; divTotal.style.textAlign = 'right'; divTotal.style.fontWeight = 'bold'; divTotal.style.fontSize = '1.1rem';
-                divTotal.innerHTML = `Total: <span style="color: var(--accent-red)">R$ ${total.toFixed(2)}</span>`;
-                listaEl.appendChild(divTotal);
+                const divTotal = document.createElement('div'); divTotal.style.marginTop = '15px'; divTotal.style.textAlign = 'right'; divTotal.style.fontWeight = 'bold'; divTotal.style.fontSize = '1.1rem';
+                divTotal.innerHTML = `Total: <span style="color: var(--accent-red)">R$ ${total.toFixed(2)}</span>`; listaEl.appendChild(divTotal);
             }
-            document.getElementById('detalhesTitulo').innerText = categoria;
-            document.getElementById('modalDetalhes').style.display = 'flex';
+            document.getElementById('detalhesTitulo').innerText = categoria; document.getElementById('modalDetalhes').style.display = 'flex';
         }
 
         function renderSaude(receitaTotal, despesas) {
@@ -509,20 +439,35 @@
         
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
-        window.exportarDados = async function() {
+        // --- FUNÇÃO EXPORTAR (SEPARAÇÃO LÓGICA PARA MOBILE/PC) ---
+        window.exportarDados = function() {
             const dados = localStorage.getItem('fin_jeff');
             if (!dados || dados === "[]") return mostrarAviso("Vazio", "Sem dados.");
             const nome = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
-            const blob = new Blob([dados], { type: 'application/json' });
             
+            // PC (MODERNO)
             if (window.showSaveFilePicker) {
-                try {
-                    const handle = await window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] });
-                    const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); mostrarAviso("Sucesso", "Salvo no PC!"); return;
-                } catch (e) { return; }
+                exportarPC(dados, nome);
+            } else {
+                // MOBILE (CLÁSSICO SÍNCRONO - FORÇA DOWNLOAD)
+                const blob = new Blob([dados], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = nome;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
             }
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        async function exportarPC(dados, nome) {
+            try {
+                const blob = new Blob([dados], { type: 'application/json' });
+                const handle = await window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'JSON', accept: {'application/json': ['.json']} }] });
+                const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); mostrarAviso("Sucesso", "Salvo no PC!");
+            } catch (e) { /* Cancelado */ }
         }
 
         window.verificarImportacao = function(event) {
