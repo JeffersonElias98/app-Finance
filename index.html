@@ -90,7 +90,7 @@
         .health-stats { display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 5px; }
         .stat-val { font-weight: bold; }
 
-        /* FAB - Botão Flutuante (Cursor corrigido) */
+        /* FAB - Botão Flutuante */
         .fab { 
             position: fixed; bottom: 30px; right: 20px; 
             background-color: var(--accent-green); color: white; 
@@ -98,7 +98,7 @@
             display: flex; justify-content: center; align-items: center; 
             font-size: 2rem; border: none; z-index: 99; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            cursor: pointer; /* AQUI ESTA A CORREÇÃO DA MÃOZINHA */
+            cursor: pointer; 
             transition: transform 0.2s;
         }
         .fab:hover { transform: scale(1.1); }
@@ -257,9 +257,9 @@
                 <label for="inputImport" class="btn-save" style="background: var(--accent-yellow); color: black; display: block; cursor: pointer; line-height: 20px;">
                     📂 Restaurar Backup (Importar)
                 </label>
-                <input type="file" id="inputImport" style="display: none;" accept=".json, .txt" onchange="verificarImportacao(event)">
+                <input type="file" id="inputImport" style="display: none;" accept=".json" onchange="verificarImportacao(event)">
                 <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: -10px;">
-                    Aceita arquivos .txt e .json
+                    Carregue o arquivo do Drive ou PC.
                 </p>
 
                 <hr>
@@ -348,7 +348,7 @@
 
             const filtrados = transacoes.filter(t => { const d = new Date(t.data + 'T00:00:00'); return d.getMonth()===m && d.getFullYear()===y; });
             
-            // ORDEM: Dia 1 -> Dia 31
+            // ORDEM CRONOLÓGICA (CRESCENTE: Dia 1 -> Dia 31)
             const receitas = filtrados.filter(t => t.tipo === 'Receita').sort((a,b) => new Date(a.data) - new Date(b.data));
             const despesas = filtrados.filter(t => t.tipo === 'Despesa').sort((a,b) => new Date(a.data) - new Date(b.data));
 
@@ -525,42 +525,43 @@
             localStorage.setItem('fin_jeff', JSON.stringify(transacoes)); fecharModal('modalExc'); render();
         }
 
+        // --- BACKUP ---
         window.abrirModalConfig = function() { document.getElementById('modalConfig').style.display = 'flex'; }
         
-        // --- FUNÇÃO EXPORTAR VERSÃO 63.0 (Data URI) ---
+        // --- FUNÇÃO DE EXPORTAÇÃO HÍBRIDA (VERSÃO 64.0) ---
         window.exportarDados = async function() {
             const dados = localStorage.getItem('fin_jeff');
             if (!dados || dados === "[]") return mostrarAviso("Vazio", "Não há dados para exportar.");
             
-            const nomeArquivo = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
-            
-            // 1. TENTA SALVAR NO PC (Janela de Escolher Pasta)
+            const nomeArquivo = `backup_money_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+            const blob = new Blob([dados], { type: 'application/json' });
+
+            // 1. COMPUTADOR: Tenta usar a janela "Salvar Como"
             if (window.showSaveFilePicker) {
                 try {
                     const handle = await window.showSaveFilePicker({ 
                         suggestedName: nomeArquivo, 
-                        types: [{ description: 'Arquivo de Texto', accept: {'text/plain': ['.txt']} }] 
+                        types: [{ description: 'Arquivo JSON', accept: {'application/json': ['.json']} }] 
                     });
                     const writable = await handle.createWritable();
-                    await writable.write(dados); 
+                    await writable.write(blob); 
                     await writable.close();
                     mostrarAviso("Sucesso", "Backup salvo!");
                     return;
-                } catch (err) { return; } // Cancelou
+                } catch (err) { return; } // Cancelado pelo usuário
             }
 
-            // 2. FALLBACK PARA ANDROID (Data URI direto)
-            // Isso coloca o conteúdo DENTRO do link, impossível vir vazio.
-            const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(dados);
-            
+            // 2. CELULAR / OUTROS: Download direto (Link Clássico)
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = uri;
+            a.href = url;
             a.download = nomeArquivo;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            
-            // Não precisa de aviso no mobile, o download aparece na barra de notificação
+            URL.revokeObjectURL(url);
+            // Aviso opcional no mobile
+            // mostrarAviso("Download", "Arquivo baixado.");
         }
 
         window.verificarImportacao = function(event) {
