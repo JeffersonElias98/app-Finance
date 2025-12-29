@@ -573,7 +573,7 @@
                 }
             } else {
                 const f = document.getElementById('freq').value; 
-                let q = f==='Parcelado' ? parseInt(document.getElementById('numParc').value) : (f==='Fixo'?12:1); 
+                let q = f==='Parcelado' ? parseInt(document.getElementById('numParc').value) : (f==='Fixo'?60:1); 
                 const sId = f==='Unico' ? null : crypto.randomUUID();
                 
                 for (let i=0; i<q; i++) {
@@ -718,7 +718,6 @@
     </script>
 </body>
 </html>
-
 
 
 
