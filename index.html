@@ -595,8 +595,10 @@
         }
 
         window.confirmarEdicao = function(m) {
-            const id = document.getElementById('editId').value; 
+            const id = document.getElementById('editId').value;
             const tOrig = transacoes.find(x => x.id === id);
+            
+            // Dados novos do formulário
             const nD = { 
                 tipo: document.getElementById('tipo').value, 
                 valor: parseFloat(document.getElementById('valor').value), 
@@ -608,14 +610,24 @@
             if (m === 'unico') {
                 Object.assign(tOrig, nD);
             } else {
+                // Extrai o novo DIA escolhido (ex: "05")
+                const novoDia = nD.data.split('-')[2];
+
                 transacoes.forEach(t => { 
                     if (t.seriesId === tOrig.seriesId) { 
+                        // Se for futuros, pula os anteriores à data original
                         if (m === 'futuros' && t.data < tOrig.data) return; 
+                        
                         t.tipo = nD.tipo; 
                         t.valor = nD.valor; 
                         t.categoria = nD.categoria; 
                         t.descricao = nD.descricao; 
-                        if (t.id === id) t.data = nD.data; 
+                        
+                        // --- LÓGICA DE DATA CORRIGIDA ---
+                        // Pega o Ano e Mês originais daquela parcela (ex: 2025-02)
+                        // E combina com o novo DIA (ex: 05) -> vira 2025-02-05
+                        let partes = t.data.split('-');
+                        t.data = `${partes[0]}-${partes[1]}-${novoDia}`;
                     } 
                 });
             }
