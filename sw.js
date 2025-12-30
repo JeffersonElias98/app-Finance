@@ -1,7 +1,8 @@
-const CACHE_NAME = 'money-balance-v82';
+const CACHE_NAME = 'money-balance-v83';
 const urlsToCache = [
   './',
   './index.html',
+  '/investimentos.html',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
