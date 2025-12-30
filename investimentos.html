@@ -813,6 +813,35 @@
             });
         }
     </script>
-</body>
 
+    <script>
+    // Script de Atualização Automática
+    if ('serviceWorker' in navigator) {
+        let refreshing = false;
+
+        // 1. Quando o SW detectar mudança, recarrega a página sozinho
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+            }
+        });
+
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // 2. Toda vez que abrir, verifica no GitHub se o sw.js mudou
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nova versão encontrada! O controllerchange (acima) vai disparar o reload.
+                    }
+                });
+            });
+            // Força a verificação agora
+            reg.update();
+        });
+    }
+</script>
+
+</body>
 </html>
