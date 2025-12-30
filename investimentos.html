@@ -202,7 +202,7 @@
                 <label id="lblNome">Código / Nome</label>
                 <input type="text" id="nomeAtivo" placeholder="Ex: PETR4" onblur="buscarCotacaoAoCadastrar()">
                 <small id="loadingCotacao" class="loading-text">Buscando cotação...</small>
-                <a id="stockLink" class="helper-link" target="_blank">Ver cotação no Google ↗</a>
+                <a id="stockLink" class="helper-link" target="_blank">Ver cotação ↗</a>
             </div>
             <div class="input-group" id="divTaxa" style="display:none">
                  <label>Taxa (Opcional)</label>
@@ -575,7 +575,7 @@
         }
 
         function exportarDados() {
-            const dados = { carteira: carteira, historico: historico, versao: '14.1' };
+            const dados = { carteira: carteira, historico: historico, versao: '14.2' };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dados));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -615,16 +615,19 @@
             });
         }
 
-        // --- FORMULÁRIO ---
+        // --- FORMULÁRIO (ATUALIZADO PARA MOSTRAR EXEMPLOS) ---
         function ajustarFormulario() {
             const tipo = document.getElementById('tipo').value;
             const inpNome = document.getElementById('nomeAtivo');
             const lblNome = document.getElementById('lblNome');
-            const loading = document.getElementById('loadingCotacao'); // Mudei o ID aqui para ser genérico
+            const loading = document.getElementById('loadingCotacao'); 
             const linkStock = document.getElementById('stockLink');
             
+            // Reseta visual padrão
             loading.style.display = 'none';
-            linkStock.style.display = 'none';
+            linkStock.style.display = 'block'; // Mostra por padrão
+            linkStock.href = `https://investidor10.com.br/`; // Link novo fixo
+
             document.getElementById('divTaxa').style.display = 'none';
             document.getElementById('precoUnitario').parentElement.style.display = 'flex';
             document.getElementById('divQtd').style.display = 'flex';
@@ -634,12 +637,19 @@
             const inpTotal = document.getElementById('valorTotalInput');
             inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
             
+            // Textos padrão da B3
+            document.getElementById('lblPreco').innerText = "Preço Pago";
+            document.getElementById('lblQtd').innerText = "Quantidade";
+            inpTotal.placeholder = "Total (R$)";
+
+            // Lógica Específica
             if(tipo === 'Cripto') {
                 lblNome.innerText = "Nome da Moeda";
                 inpNome.placeholder = "Ex: bitcoin, ethereum, solana";
                 document.getElementById('lblPreco').innerText = "Cotação Atual (R$)";
                 document.getElementById('lblQtd').innerText = "Qtd. Moedas";
                 inpTotal.placeholder = "Valor Gasto (R$)";
+                linkStock.style.display = 'none'; // Sem link para cripto
             } 
             else if (tipo === 'RendaFixa') {
                 lblNome.innerText = "Investimento";
@@ -648,16 +658,21 @@
                 document.getElementById('precoUnitario').parentElement.style.display = 'none';
                 document.getElementById('divQtd').style.display = 'none';
                 inpTotal.placeholder = "Valor Aportado (R$)";
+                linkStock.style.display = 'none'; // Sem link para renda fixa
             }
-            else { 
-                lblNome.innerText = "Código (Ticker)";
-                inpNome.placeholder = "Ex: PETR4, MXRF11, BOVA11";
-                document.getElementById('lblPreco').innerText = "Preço Pago";
-                document.getElementById('lblQtd').innerText = "Quantidade";
-                inpTotal.placeholder = "Total (R$)";
-                linkStock.style.display = 'block';
-                linkStock.href = `https://www.google.com/finance/`;
+            else if (tipo === 'FII') {
+                lblNome.innerText = "Código FII";
+                inpNome.placeholder = "Ex: MXRF11, HGLG11, VISC11";
             }
+            else if (tipo === 'ETF') {
+                lblNome.innerText = "Código ETF";
+                inpNome.placeholder = "Ex: IVVB11, BOVA11, SMAL11";
+            }
+            else { // Ação
+                lblNome.innerText = "Código Ação";
+                inpNome.placeholder = "Ex: PETR4, VALE3, ITUB4";
+            }
+            
             if(inpNome.value === '') { inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = ''; }
         }
 
