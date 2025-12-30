@@ -56,7 +56,6 @@
             box-sizing: border-box; 
         }
         
-        /* Ajuste para telas pequenas */
         .header-left .app-name { 
             font-size: 1.2rem; font-weight: 800; white-space: nowrap; 
             overflow: hidden; text-overflow: ellipsis;
@@ -68,15 +67,11 @@
         }
 
         .header-right { display: flex; gap: 20px; align-items: center; }
-        
         .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); padding: 5px; transition: opacity 0.2s; }
         .icon-btn:hover { opacity: 0.8; }
-
-        /* --- PRIVACIDADE --- */
         .blur-text { filter: blur(8px); user-select: none; }
         body.privacy-active canvas { filter: blur(10px); opacity: 0.5; }
 
-        /* --- CARDS & GRÁFICOS --- */
         .resumo-card { 
             background: linear-gradient(135deg, var(--card-bg) 0%, var(--header-bg) 100%); 
             width: 100%; max-width: 600px; padding: 25px; border-radius: 20px; 
@@ -89,14 +84,13 @@
         .charts-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
         .chart-box { 
             background: var(--card-bg); padding: 15px; border-radius: 15px; 
-            border: 1px solid var(--border-color); height: 320px; /* Aumentado para caber gráfico maior */
+            border: 1px solid var(--border-color); height: 320px; 
             position: relative; display: flex; flex-direction: column; 
             align-items: center; justify-content: center;
         }
         .chart-wrapper { position: relative; height: 260px; width: 100%; display: flex; justify-content: center; }
         h4 { margin: 0 0 10px 0; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; text-align: center; text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
-        /* LISTA */
         .lista-ativos { width: 100%; max-width: 600px; }
         .ativo-card { background: var(--card-bg); padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .ativo-info h3 { margin: 0; font-size: 1rem; font-weight: 600; }
@@ -105,19 +99,15 @@
         
         .btn-cotacao { background: #333; border: 1px solid var(--border-color); color: #fff; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 5px; display: inline-flex; align-items: center; gap: 5px; }
 
-        /* BOTÃO PRINCIPAL */
         .btn-main { width: 100%; max-width: 600px; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; color: #fff; background: var(--accent-blue); cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3); }
         .btn-main:active { transform: scale(0.98); }
 
-        /* MODAIS */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
         .modal-content { background: var(--modal-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
         .form-title { font-size: 1.2rem; margin: 0 0 5px 0; color: var(--text-color); }
-        
         .input-group { display: flex; flex-direction: column; gap: 6px; }
         .input-row { display: flex; gap: 12px; }
-        
         label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; margin-left: 2px; }
         
         input, select { 
@@ -135,7 +125,6 @@
         .loading-text { font-size: 0.75rem; color: var(--accent-green); display: none; margin-top: -5px; margin-bottom: 5px; }
         .helper-link { font-size: 0.75rem; color: var(--accent-blue); text-decoration: none; margin-top: -5px; display: none; cursor: pointer;}
         
-        /* Menu Config */
         .config-option { 
             padding: 15px; background: var(--input-bg); border-radius: 12px; margin-bottom: 10px; 
             cursor: pointer; display: flex; align-items: center; gap: 15px; 
@@ -194,13 +183,11 @@
     <button class="btn-main" onclick="abrirModalAdd()">+ Novo Investimento</button>
 
     <div id="listaAtivos" class="lista-ativos"></div>
-    
     <div class="footer-credits">made by JEFFERSON ELIAS</div>
 
     <div id="modalAdd" class="modal">
         <div class="modal-content">
             <h3 class="form-title">Novo Ativo</h3>
-            
             <div class="input-group">
                 <label>Categoria</label>
                 <select id="tipo" onchange="ajustarFormulario()">
@@ -211,36 +198,30 @@
                     <option value="RendaFixa">Renda Fixa</option>
                 </select>
             </div>
-            
             <div class="input-group">
                 <label id="lblNome">Código / Nome</label>
                 <input type="text" id="nomeAtivo" placeholder="Ex: PETR4" onblur="buscarCriptoSmart()">
                 <small id="criptoLoading" class="loading-text">Buscando cotação...</small>
                 <a id="stockLink" class="helper-link" target="_blank">Ver cotação no Google ↗</a>
             </div>
-            
             <div class="input-group" id="divTaxa" style="display:none">
                  <label>Taxa (Opcional)</label>
                  <input type="text" id="taxa" placeholder="Ex: 100% CDI">
             </div>
-
             <div class="input-row">
                 <div class="input-group" style="flex:1">
                     <label id="lblPreco">Preço Unit.</label>
                     <input type="number" id="precoUnitario" placeholder="0,00" step="0.00000001" onkeyup="calcularBidirecional('preco')">
                 </div>
-                
                 <div class="input-group" style="flex:1" id="divQtd">
                     <label id="lblQtd">Quantidade</label>
                     <input type="number" id="qtd" placeholder="0" step="0.00000001" onkeyup="calcularBidirecional('qtd')">
                 </div>
             </div>
-
             <div class="input-group">
                 <label id="lblTotal">Total Investido (R$)</label>
                 <input type="number" id="valorTotalInput" placeholder="0,00" step="0.01" onkeyup="calcularBidirecional('total')">
             </div>
-
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="fecharModal('modalAdd')">Cancelar</button>
                 <button class="btn-confirm" onclick="salvarInvestimento()">Salvar</button>
@@ -320,6 +301,11 @@
     </div>
 
     <script>
+        // --- COLOQUE SEU TOKEN AQUI ---
+        // Crie uma conta grátis em https://brapi.dev/ e cole o token abaixo
+        // Se deixar vazio, usa a versão de testes (instável)
+        const BRAPI_TOKEN = '4SyUvseEoazmZec7AAntHY'; 
+
         // --- SPLASH SCREEN ---
         window.addEventListener('load', () => {
             setTimeout(() => {
@@ -328,8 +314,8 @@
                 setTimeout(() => splash.style.visibility = 'hidden', 500);
             }, 1200);
             
-            // INICIAR ATUALIZAÇÃO AUTOMÁTICA DE CRIPTO
-            atualizarCriptosAutomaticamente();
+            // INICIAR ATUALIZAÇÃO AUTOMÁTICA GERAL
+            atualizarPrecosAutomaticamente();
         });
 
         // --- DADOS ---
@@ -344,53 +330,80 @@
         let chartBarra = null;
         let callbackConfirmacao = null;
 
-        // --- INICIALIZAÇÃO ---
         carregarPref();
         render();
         atualizarIconeOlho();
 
-        // --- FUNCIONALIDADE NOVA: ATUALIZAÇÃO AUTOMÁTICA CRIPTO ---
-        async function atualizarCriptosAutomaticamente() {
+        // --- ATUALIZAÇÃO AUTOMÁTICA GERAL ---
+        async function atualizarPrecosAutomaticamente() {
+            const elLucro = document.getElementById('lucroTotalDisplay');
+            let houveMudanca = false;
+
+            // 1. ATUALIZAR CRIPTOS (Via CoinGecko - Grátis e Aberto)
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
-            
             if (criptos.length > 0) {
-                // Aviso visual discreto
-                const elLucro = document.getElementById('lucroTotalDisplay');
                 elLucro.innerText = "Atualizando Cripto...";
                 elLucro.style.color = "var(--accent-yellow)";
-
                 for (let item of criptos) {
                     try {
                         const query = item.nome.toLowerCase().trim();
-                        // 1. Busca o ID correto (ex: Bitcoin -> bitcoin)
                         const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
                         const searchData = await searchRes.json();
-                        
                         if (searchData.coins && searchData.coins.length > 0) {
                             const coinID = searchData.coins[0].id;
-                            // 2. Busca o preço atualizado
                             const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
                             const priceData = await priceRes.json();
-
                             if (priceData[coinID] && priceData[coinID].brl) {
-                                // Atualiza o preço unitário na carteira
                                 item.precoAtualUnitario = priceData[coinID].brl;
+                                houveMudanca = true;
                             }
                         }
-                    } catch (e) {
-                        console.log("Erro ao atualizar " + item.nome);
-                    }
+                    } catch (e) { console.log("Erro Cripto: " + item.nome); }
                 }
-                // Salva e Recalcula tudo
-                salvarTudo();
+            }
+
+            // 2. ATUALIZAR B3 (Via Brapi - Precisa de Token para 15k reqs)
+            const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
+            if (ativosB3.length > 0) {
+                elLucro.innerText = "Atualizando B3...";
+                elLucro.style.color = "var(--accent-blue)";
+                
+                const tickers = ativosB3.map(i => i.nome).join(',');
+                
+                // Monta a URL: Se tiver token, usa. Se não, usa a pública.
+                let urlBrapi = `https://brapi.dev/api/quote/${tickers}?range=1d&interval=1d&fundamental=false`;
+                if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') {
+                    urlBrapi += `&token=${BRAPI_TOKEN}`;
+                }
+
+                try {
+                    const response = await fetch(urlBrapi);
+                    const data = await response.json();
+                    
+                    if (data.results) {
+                        data.results.forEach(resultado => {
+                            const itemCarteira = carteira.find(i => i.nome === resultado.symbol);
+                            if (itemCarteira && resultado.regularMarketPrice) {
+                                itemCarteira.precoAtualUnitario = resultado.regularMarketPrice;
+                                houveMudanca = true;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.log("Erro B3: API limit or invalid token.");
+                }
+            }
+
+            if (houveMudanca) {
+                salvarTudo(); 
+            } else {
+                render(); // Remove texto "Atualizando..." e volta ao normal
             }
         }
 
         // --- PREFERÊNCIAS ---
         function carregarPref() {
-            if (localStorage.getItem('tema') === 'light') {
-                document.body.classList.add('light-mode');
-            }
+            if (localStorage.getItem('tema') === 'light') document.body.classList.add('light-mode');
         }
 
         function alternarTema() {
@@ -445,7 +458,6 @@
                 const cor = lucroReais >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
                 const sinal = lucroReais >= 0 ? '+' : '';
                 
-                // Data de Compra
                 const dataCompra = new Date(item.id).toLocaleDateString('pt-BR');
 
                 if (item.tipo !== tipoAtual) {
@@ -528,7 +540,7 @@
 
         // --- BACKUP / CONFIGURAÇÕES ---
         function exportarDados() {
-            const dados = { carteira: carteira, historico: historico, versao: '12.1' };
+            const dados = { carteira: carteira, historico: historico, versao: '13.5' };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dados));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -570,7 +582,7 @@
             });
         }
 
-        // --- API CRIPTO ---
+        // --- API CRIPTO (AUXILIAR FORMULÁRIO) ---
         async function buscarCriptoSmart() {
             const tipo = document.getElementById('tipo').value;
             const nomeInput = document.getElementById('nomeAtivo');
@@ -601,7 +613,7 @@
             } catch (e) { loading.innerText = "Erro na conexão."; }
         }
 
-        // --- FORMULÁRIO (AGORA COM EXEMPLOS) ---
+        // --- FORMULÁRIO (COM EXEMPLOS) ---
         function ajustarFormulario() {
             const tipo = document.getElementById('tipo').value;
             const inpNome = document.getElementById('nomeAtivo');
@@ -622,7 +634,6 @@
             
             inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
             
-            // LÓGICA DE EXEMPLOS
             if(tipo === 'Cripto') {
                 lblNome.innerText = "Nome da Moeda";
                 inpNome.placeholder = "Ex: bitcoin, ethereum, solana";
@@ -632,7 +643,7 @@
             } 
             else if (tipo === 'RendaFixa') {
                 lblNome.innerText = "Investimento";
-                inpNome.placeholder = "Ex: CDB, LCI, Tesouro Selic";
+                inpNome.placeholder = "Ex: CDB Nubank, Tesouro Selic";
                 document.getElementById('divTaxa').style.display = 'flex';
                 document.getElementById('precoUnitario').parentElement.style.display = 'none';
                 document.getElementById('divQtd').style.display = 'none';
@@ -656,7 +667,7 @@
                 linkStock.style.display = 'block';
                 linkStock.href = `https://www.google.com/finance/`;
             }
-            else { // Ações
+            else { 
                 lblNome.innerText = "Código Ação";
                 inpNome.placeholder = "Ex: PETR4, VALE3, ITUB4";
                 document.getElementById('lblPreco').innerText = "Preço Pago";
@@ -666,7 +677,6 @@
                 linkStock.href = `https://www.google.com/finance/`;
             }
             
-            // Limpa campos se estiver vazio (apenas visual)
             if(inpNome.value === '') {
                  inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = '';
             }
@@ -701,7 +711,6 @@
             document.getElementById('valorTotalInput').value = '';
         }
 
-        // --- SISTEMA ---
         function salvarTudo() { localStorage.setItem(DB_KEY, JSON.stringify(carteira)); render(); }
         
         function salvarHistorico(total) {
@@ -728,7 +737,6 @@
             icon.style.color = privacidadeAtiva ? 'var(--accent-red)' : 'var(--text-color)';
         }
 
-        // Modais
         function abrirModalConfig() { document.getElementById('modalConfig').style.display = 'flex'; }
         function abrirModalAdd() { document.getElementById('modalAdd').style.display = 'flex'; ajustarFormulario(); }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -762,21 +770,17 @@
             salvarTudo(); fecharModal('modalDelete'); 
         }
 
-        // Utils
         function traduzirTipo(t) { const m = {'RendaFixa':'Renda Fixa','Ação':'Ações','FII':'Fundos Imobiliários','Cripto':'Criptoativos','ETF':'ETFs'}; return m[t]||t; }
         function getCor(t) { const m = {'RendaFixa':'#4CAF50','Ação':'#2196F3','FII':'#FFC107','Cripto':'#FF5722','ETF':'#9C27B0'}; return m[t]||'#999'; }
         function formatarPreco(v) { return v > 1000 ? v.toLocaleString('pt-BR',{minimumFractionDigits:2}) : v.toFixed(2); }
         function formatarQtd(v) { return v % 1 === 0 ? v : v.toFixed(6); }
 
-        // --- GRÁFICOS ---
-        
         function renderGraficoPizza(dados) {
             const ctx = document.getElementById('graficoAlocacao');
             const txtColor = document.body.classList.contains('light-mode') ? '#333' : '#aaa';
             const valores = Object.values(dados);
             const chaves = Object.keys(dados);
             const total = valores.reduce((a, b) => a + b, 0);
-            
             const labelsComPorcentagem = chaves.map((chave, index) => {
                 const val = valores[index];
                 const perc = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
@@ -798,20 +802,8 @@
                     responsive: true, 
                     maintainAspectRatio: false, 
                     plugins: { 
-                        legend: { 
-                            position: 'right', 
-                            labels: { color: txtColor, boxWidth:10, font: {size: 13} } 
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) label += ': ';
-                                    if (context.parsed !== null) label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
-                                    return label;
-                                }
-                            }
-                        }
+                        legend: { position: 'right', labels: { color: txtColor, boxWidth:10, font: {size: 13} } },
+                        tooltip: { callbacks: { label: function(context) { let label = context.label || ''; if (label) label += ': '; if (context.parsed !== null) label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed); return label; } } }
                     } 
                 }
             });
@@ -821,7 +813,6 @@
             const ctx = document.getElementById('graficoEvolucao');
             const txtColor = document.body.classList.contains('light-mode') ? '#666' : '#888';
             const gridColor = document.body.classList.contains('light-mode') ? '#e0e0e0' : '#333';
-
             const dadosAgrupados = {};
 
             historico.forEach(h => {
@@ -869,7 +860,6 @@
     </script>
     
     <script>
-    // Script de Atualização Automática SW
     if ('serviceWorker' in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -882,8 +872,7 @@
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    }
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) { }
                 });
             });
             reg.update();
@@ -893,4 +882,3 @@
 
 </body>
 </html>
-
