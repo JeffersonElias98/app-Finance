@@ -200,8 +200,8 @@
             </div>
             <div class="input-group">
                 <label id="lblNome">Código / Nome</label>
-                <input type="text" id="nomeAtivo" placeholder="Ex: PETR4" onblur="buscarCriptoSmart()">
-                <small id="criptoLoading" class="loading-text">Buscando cotação...</small>
+                <input type="text" id="nomeAtivo" placeholder="Ex: PETR4" onblur="buscarCotacaoAoCadastrar()">
+                <small id="loadingCotacao" class="loading-text">Buscando cotação...</small>
                 <a id="stockLink" class="helper-link" target="_blank">Ver cotação no Google ↗</a>
             </div>
             <div class="input-group" id="divTaxa" style="display:none">
@@ -301,10 +301,8 @@
     </div>
 
     <script>
-        // --- COLOQUE SEU TOKEN AQUI ---
-        // Crie uma conta grátis em https://brapi.dev/ e cole o token abaixo
-        // Se deixar vazio, usa a versão de testes (instável)
-        const BRAPI_TOKEN = '4SyUvseEoazmZec7AAntHY'; 
+        // --- CONFIGURAÇÃO ---
+        const BRAPI_TOKEN = 'SEU_TOKEN_AQUI'; // Coloque seu token aqui
 
         // --- SPLASH SCREEN ---
         window.addEventListener('load', () => {
@@ -334,12 +332,80 @@
         render();
         atualizarIconeOlho();
 
-        // --- ATUALIZAÇÃO AUTOMÁTICA GERAL ---
+        // --- 1. FUNÇÃO DE BUSCA NO CADASTRO (AÇÃO/FII/ETF + CRIPTO) ---
+        async function buscarCotacaoAoCadastrar() {
+            const tipo = document.getElementById('tipo').value;
+            const nomeInput = document.getElementById('nomeAtivo');
+            const loading = document.getElementById('loadingCotacao');
+            const precoInput = document.getElementById('precoUnitario');
+
+            // Se for Renda Fixa ou vazio, não faz nada
+            if (tipo === 'RendaFixa' || nomeInput.value.length < 2) return;
+
+            loading.style.display = 'block';
+            loading.innerText = 'Buscando cotação...';
+            loading.style.color = 'var(--accent-blue)';
+            
+            const query = nomeInput.value.toLowerCase().trim();
+
+            try {
+                // MODO CRIPTO
+                if (tipo === 'Cripto') {
+                    const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
+                    const searchData = await searchRes.json();
+                    
+                    if (searchData.coins && searchData.coins.length > 0) {
+                        const coinID = searchData.coins[0].id;
+                        loading.innerText = `Encontrado: ${searchData.coins[0].name}`;
+                        
+                        const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
+                        const priceData = await priceRes.json();
+
+                        if (priceData[coinID] && priceData[coinID].brl) {
+                            precoInput.value = priceData[coinID].brl;
+                            loading.style.color = 'var(--accent-green)';
+                            // Recalcula total se já tiver quantidade
+                            calcularBidirecional('preco');
+                        }
+                    } else {
+                         throw new Error('Não encontrado');
+                    }
+                } 
+                // MODO B3 (Ação, FII, ETF)
+                else {
+                    const ticker = nomeInput.value.toUpperCase().trim();
+                    let urlBrapi = `https://brapi.dev/api/quote/${ticker}?range=1d&interval=1d&fundamental=false`;
+                    if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') {
+                        urlBrapi += `&token=${BRAPI_TOKEN}`;
+                    }
+                    
+                    const response = await fetch(urlBrapi);
+                    const data = await response.json();
+
+                    if (data.results && data.results.length > 0) {
+                        const preco = data.results[0].regularMarketPrice;
+                        precoInput.value = preco;
+                        loading.innerText = `Encontrado: R$ ${preco}`;
+                        loading.style.color = 'var(--accent-green)';
+                        calcularBidirecional('preco');
+                    } else {
+                        throw new Error('Não encontrado');
+                    }
+                }
+            } catch (e) {
+                // SE DER ERRO: Libera para digitar
+                loading.innerText = "Não encontrado (Preencha manualmente)";
+                loading.style.color = "var(--accent-yellow)";
+                // O campo input continua editável, então o usuário pode digitar
+            }
+        }
+
+        // --- 2. ATUALIZAÇÃO AUTOMÁTICA GERAL (AO ABRIR APP) ---
         async function atualizarPrecosAutomaticamente() {
             const elLucro = document.getElementById('lucroTotalDisplay');
             let houveMudanca = false;
 
-            // 1. ATUALIZAR CRIPTOS (Via CoinGecko - Grátis e Aberto)
+            // CRIPTO
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
             if (criptos.length > 0) {
                 elLucro.innerText = "Atualizando Cripto...";
@@ -362,24 +428,18 @@
                 }
             }
 
-            // 2. ATUALIZAR B3 (Via Brapi - Precisa de Token para 15k reqs)
+            // B3 (Ação, FII, ETF)
             const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
             if (ativosB3.length > 0) {
                 elLucro.innerText = "Atualizando B3...";
                 elLucro.style.color = "var(--accent-blue)";
-                
                 const tickers = ativosB3.map(i => i.nome).join(',');
-                
-                // Monta a URL: Se tiver token, usa. Se não, usa a pública.
                 let urlBrapi = `https://brapi.dev/api/quote/${tickers}?range=1d&interval=1d&fundamental=false`;
-                if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') {
-                    urlBrapi += `&token=${BRAPI_TOKEN}`;
-                }
+                if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') urlBrapi += `&token=${BRAPI_TOKEN}`;
 
                 try {
                     const response = await fetch(urlBrapi);
                     const data = await response.json();
-                    
                     if (data.results) {
                         data.results.forEach(resultado => {
                             const itemCarteira = carteira.find(i => i.nome === resultado.symbol);
@@ -389,29 +449,21 @@
                             }
                         });
                     }
-                } catch (e) {
-                    console.log("Erro B3: API limit or invalid token.");
-                }
+                } catch (e) { console.log("Erro B3 API"); }
             }
 
-            if (houveMudanca) {
-                salvarTudo(); 
-            } else {
-                render(); // Remove texto "Atualizando..." e volta ao normal
-            }
+            if (houveMudanca) salvarTudo(); else render();
         }
 
         // --- PREFERÊNCIAS ---
         function carregarPref() {
             if (localStorage.getItem('tema') === 'light') document.body.classList.add('light-mode');
         }
-
         function alternarTema() {
             const isLight = document.body.classList.toggle('light-mode');
             localStorage.setItem('tema', isLight ? 'light' : 'dark');
             render();
         }
-
         function mostrarConfirmacao(titulo, msg, callback) {
             document.getElementById('confTitulo').innerText = titulo;
             document.getElementById('confMsg').innerText = msg;
@@ -431,16 +483,13 @@
             let totalPatrimonio = 0;
             let totalInvestido = 0;
             let alocacao = {};
-
             const carteiraVisual = [...carteira].sort((a,b) => a.tipo.localeCompare(b.tipo));
 
             if(carteiraVisual.length === 0) lista.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:30px">Carteira vazia.</p>';
-
             let tipoAtual = '';
 
             carteiraVisual.forEach((item) => {
                 let valorAtualTotal = 0, custoTotal = 0;
-
                 if (item.tipo === 'RendaFixa') {
                     valorAtualTotal = item.precoAtualUnitario;
                     custoTotal = item.valorInvestidoOriginal; 
@@ -457,7 +506,6 @@
                 const lucroPorcentagem = custoTotal > 0 ? (lucroReais / custoTotal) * 100 : 0;
                 const cor = lucroReais >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
                 const sinal = lucroReais >= 0 ? '+' : '';
-                
                 const dataCompra = new Date(item.id).toLocaleDateString('pt-BR');
 
                 if (item.tipo !== tipoAtual) {
@@ -511,36 +559,23 @@
             renderGraficoEvolucaoMensal();
         }
 
-        // --- CÁLCULO BIDIRECIONAL ---
         function calcularBidirecional(origem) {
             const tipo = document.getElementById('tipo').value;
             if (tipo === 'RendaFixa') return;
-
             const inpPreco = document.getElementById('precoUnitario');
             const inpQtd = document.getElementById('qtd');
             const inpTotal = document.getElementById('valorTotalInput');
-
             const p = parseFloat(inpPreco.value);
             const q = parseFloat(inpQtd.value);
             const t = parseFloat(inpTotal.value);
 
-            if (origem === 'qtd') {
-                if (p && !isNaN(q)) inpTotal.value = (p * q).toFixed(2);
-            } 
-            else if (origem === 'total') {
-                if (p && !isNaN(t)) {
-                    const casas = tipo === 'Cripto' ? 8 : 2;
-                    inpQtd.value = (t / p).toFixed(casas);
-                }
-            }
-            else if (origem === 'preco') {
-                if (q && !isNaN(p)) inpTotal.value = (p * q).toFixed(2);
-            }
+            if (origem === 'qtd') { if (p && !isNaN(q)) inpTotal.value = (p * q).toFixed(2); } 
+            else if (origem === 'total') { if (p && !isNaN(t)) { const casas = tipo === 'Cripto' ? 8 : 2; inpQtd.value = (t / p).toFixed(casas); } }
+            else if (origem === 'preco') { if (q && !isNaN(p)) inpTotal.value = (p * q).toFixed(2); }
         }
 
-        // --- BACKUP / CONFIGURAÇÕES ---
         function exportarDados() {
-            const dados = { carteira: carteira, historico: historico, versao: '13.5' };
+            const dados = { carteira: carteira, historico: historico, versao: '14.1' };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dados));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -550,7 +585,6 @@
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
         }
-
         function importarDados(input) {
             const file = input.files[0];
             if (!file) return;
@@ -570,7 +604,6 @@
             };
             reader.readAsText(file);
         }
-
         function confirmarReset() {
             mostrarConfirmacao("Resetar?", "Apagar todos os investimentos?", () => {
                 localStorage.removeItem(DB_KEY);
@@ -582,48 +615,16 @@
             });
         }
 
-        // --- API CRIPTO (AUXILIAR FORMULÁRIO) ---
-        async function buscarCriptoSmart() {
-            const tipo = document.getElementById('tipo').value;
-            const nomeInput = document.getElementById('nomeAtivo');
-            const loading = document.getElementById('criptoLoading');
-            const precoInput = document.getElementById('precoUnitario');
-            
-            if (tipo !== 'Cripto' || nomeInput.value.length < 2) return;
-
-            loading.style.display = 'block';
-            const query = nomeInput.value.toLowerCase().trim();
-
-            try {
-                const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
-                const searchData = await searchRes.json();
-                
-                if (searchData.coins && searchData.coins.length > 0) {
-                    const coinID = searchData.coins[0].id;
-                    loading.innerText = `Encontrado: ${searchData.coins[0].name}.`;
-                    const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
-                    const priceData = await priceRes.json();
-
-                    if (priceData[coinID] && priceData[coinID].brl) {
-                        precoInput.value = priceData[coinID].brl;
-                        loading.style.display = 'none';
-                        if(document.getElementById('valorTotalInput').value) calcularBidirecional('total');
-                    }
-                } else { loading.innerText = "Moeda não encontrada."; }
-            } catch (e) { loading.innerText = "Erro na conexão."; }
-        }
-
-        // --- FORMULÁRIO (COM EXEMPLOS) ---
+        // --- FORMULÁRIO ---
         function ajustarFormulario() {
             const tipo = document.getElementById('tipo').value;
             const inpNome = document.getElementById('nomeAtivo');
             const lblNome = document.getElementById('lblNome');
-            const loading = document.getElementById('criptoLoading');
+            const loading = document.getElementById('loadingCotacao'); // Mudei o ID aqui para ser genérico
             const linkStock = document.getElementById('stockLink');
             
             loading.style.display = 'none';
             linkStock.style.display = 'none';
-
             document.getElementById('divTaxa').style.display = 'none';
             document.getElementById('precoUnitario').parentElement.style.display = 'flex';
             document.getElementById('divQtd').style.display = 'flex';
@@ -631,7 +632,6 @@
             const inpPreco = document.getElementById('precoUnitario');
             const inpQtd = document.getElementById('qtd');
             const inpTotal = document.getElementById('valorTotalInput');
-            
             inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
             
             if(tipo === 'Cripto') {
@@ -649,46 +649,23 @@
                 document.getElementById('divQtd').style.display = 'none';
                 inpTotal.placeholder = "Valor Aportado (R$)";
             }
-            else if (tipo === 'FII') {
-                lblNome.innerText = "Código FII";
-                inpNome.placeholder = "Ex: MXRF11, HGLG11, VISC11";
-                document.getElementById('lblPreco').innerText = "Preço Pago";
-                document.getElementById('lblQtd').innerText = "Quantidade";
-                inpTotal.placeholder = "Total (R$)";
-                linkStock.style.display = 'block';
-                linkStock.href = `https://www.google.com/finance/`;
-            }
-            else if (tipo === 'ETF') {
-                lblNome.innerText = "Código ETF";
-                inpNome.placeholder = "Ex: IVVB11, BOVA11, SMAL11";
-                document.getElementById('lblPreco').innerText = "Preço Pago";
-                document.getElementById('lblQtd').innerText = "Quantidade";
-                inpTotal.placeholder = "Total (R$)";
-                linkStock.style.display = 'block';
-                linkStock.href = `https://www.google.com/finance/`;
-            }
             else { 
-                lblNome.innerText = "Código Ação";
-                inpNome.placeholder = "Ex: PETR4, VALE3, ITUB4";
+                lblNome.innerText = "Código (Ticker)";
+                inpNome.placeholder = "Ex: PETR4, MXRF11, BOVA11";
                 document.getElementById('lblPreco').innerText = "Preço Pago";
                 document.getElementById('lblQtd').innerText = "Quantidade";
                 inpTotal.placeholder = "Total (R$)";
                 linkStock.style.display = 'block';
                 linkStock.href = `https://www.google.com/finance/`;
             }
-            
-            if(inpNome.value === '') {
-                 inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = '';
-            }
+            if(inpNome.value === '') { inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = ''; }
         }
 
         function salvarInvestimento() {
             const tipo = document.getElementById('tipo').value;
             const nome = document.getElementById('nomeAtivo').value.toUpperCase();
             if(!nome) return alert("Preencha o nome.");
-
             let item = { id: Date.now(), tipo, nome, qtd:0, precoMedioCompra:0, precoAtualUnitario:0, valorInvestidoOriginal:0, taxa:'' };
-
             if(tipo === 'RendaFixa') {
                 item.valorInvestidoOriginal = parseFloat(document.getElementById('valorTotalInput').value);
                 item.precoAtualUnitario = item.valorInvestidoOriginal;
@@ -698,33 +675,23 @@
                 item.qtd = parseFloat(document.getElementById('qtd').value);
                 item.precoAtualUnitario = item.precoMedioCompra;
             }
-            
             if(isNaN(item.precoAtualUnitario) || item.precoAtualUnitario <= 0) return alert("Valores inválidos.");
-
             carteira.push(item);
             salvarTudo();
             fecharModal('modalAdd');
-            
             document.getElementById('nomeAtivo').value = '';
             document.getElementById('precoUnitario').value = '';
             document.getElementById('qtd').value = '';
             document.getElementById('valorTotalInput').value = '';
         }
-
         function salvarTudo() { localStorage.setItem(DB_KEY, JSON.stringify(carteira)); render(); }
-        
         function salvarHistorico(total) {
             const hojeISO = new Date().toISOString().split('T')[0]; 
             const ultimo = historico[historico.length - 1];
-            
-            if (ultimo && ultimo.data === hojeISO) {
-                ultimo.valor = total;
-            } else {
-                historico.push({ data: hojeISO, valor: total });
-            }
+            if (ultimo && ultimo.data === hojeISO) { ultimo.valor = total; } 
+            else { historico.push({ data: hojeISO, valor: total }); }
             localStorage.setItem(HIST_KEY, JSON.stringify(historico));
         }
-
         function togglePrivacidade() {
             privacidadeAtiva = !privacidadeAtiva;
             localStorage.setItem(PRIV_KEY, privacidadeAtiva);
@@ -736,7 +703,6 @@
             icon.className = privacidadeAtiva ? 'fas fa-eye-slash' : 'fas fa-eye';
             icon.style.color = privacidadeAtiva ? 'var(--accent-red)' : 'var(--text-color)';
         }
-
         function abrirModalConfig() { document.getElementById('modalConfig').style.display = 'flex'; }
         function abrirModalAdd() { document.getElementById('modalAdd').style.display = 'flex'; ajustarFormulario(); }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -769,7 +735,6 @@
             carteira = carteira.filter(i => i.id !== id);
             salvarTudo(); fecharModal('modalDelete'); 
         }
-
         function traduzirTipo(t) { const m = {'RendaFixa':'Renda Fixa','Ação':'Ações','FII':'Fundos Imobiliários','Cripto':'Criptoativos','ETF':'ETFs'}; return m[t]||t; }
         function getCor(t) { const m = {'RendaFixa':'#4CAF50','Ação':'#2196F3','FII':'#FFC107','Cripto':'#FF5722','ETF':'#9C27B0'}; return m[t]||'#999'; }
         function formatarPreco(v) { return v > 1000 ? v.toLocaleString('pt-BR',{minimumFractionDigits:2}) : v.toFixed(2); }
@@ -786,99 +751,32 @@
                 const perc = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
                 return `${traduzirTipo(chave)} (${perc}%)`;
             });
-
             if(chartPizza) chartPizza.destroy();
-            chartPizza = new Chart(ctx, {
-                type: 'doughnut',
-                data: { 
-                    labels: labelsComPorcentagem, 
-                    datasets: [{ 
-                        data: valores, 
-                        backgroundColor: chaves.map(getCor), 
-                        borderWidth:0 
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { position: 'right', labels: { color: txtColor, boxWidth:10, font: {size: 13} } },
-                        tooltip: { callbacks: { label: function(context) { let label = context.label || ''; if (label) label += ': '; if (context.parsed !== null) label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed); return label; } } }
-                    } 
-                }
-            });
+            chartPizza = new Chart(ctx, { type: 'doughnut', data: { labels: labelsComPorcentagem, datasets: [{ data: valores, backgroundColor: chaves.map(getCor), borderWidth:0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: txtColor, boxWidth:10, font: {size: 13} } }, tooltip: { callbacks: { label: function(context) { let label = context.label || ''; if (label) label += ': '; if (context.parsed !== null) label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed); return label; } } } } } });
         }
-
         function renderGraficoEvolucaoMensal() {
             const ctx = document.getElementById('graficoEvolucao');
             const txtColor = document.body.classList.contains('light-mode') ? '#666' : '#888';
             const gridColor = document.body.classList.contains('light-mode') ? '#e0e0e0' : '#333';
             const dadosAgrupados = {};
-
             historico.forEach(h => {
                 let mesAno = "";
-                if (h.data.includes('-')) {
-                    const parts = h.data.split('-');
-                    mesAno = `${parts[1]}/${parts[0].slice(2)}`;
-                } else {
-                    const parts = h.data.split('/');
-                    const anoAtual = new Date().getFullYear().toString().slice(2);
-                    mesAno = `${parts[1]}/${anoAtual}`;
-                }
+                if (h.data.includes('-')) { const parts = h.data.split('-'); mesAno = `${parts[1]}/${parts[0].slice(2)}`; } 
+                else { const parts = h.data.split('/'); const anoAtual = new Date().getFullYear().toString().slice(2); mesAno = `${parts[1]}/${anoAtual}`; }
                 dadosAgrupados[mesAno] = h.valor;
             });
-
             const labels = Object.keys(dadosAgrupados);
             const values = Object.values(dadosAgrupados);
-
             if(chartBarra) chartBarra.destroy();
-            chartBarra = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Patrimônio', 
-                        data: values,
-                        backgroundColor: '#4CAF50',
-                        borderRadius: 4,
-                        barPercentage: 0.5,     
-                        categoryPercentage: 0.8, 
-                        maxBarThickness: 40      
-                    }]
-                },
-                options: {
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { ticks: { color: txtColor }, grid: { display:false } }, 
-                        y: { ticks: { color: txtColor }, grid: { color: gridColor } } 
-                    }
-                }
-            });
+            chartBarra = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Patrimônio', data: values, backgroundColor: '#4CAF50', borderRadius: 4, barPercentage: 0.5, categoryPercentage: 0.8, maxBarThickness: 40 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: txtColor }, grid: { display:false } }, y: { ticks: { color: txtColor }, grid: { color: gridColor } } } } });
         }
     </script>
-    
     <script>
     if ('serviceWorker' in navigator) {
         let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (!refreshing) {
-                refreshing = true;
-                window.location.reload();
-            }
-        });
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) { }
-                });
-            });
-            reg.update();
-        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => { if (!refreshing) { refreshing = true; window.location.reload(); } });
+        navigator.serviceWorker.register('./sw.js').then(reg => { reg.addEventListener('updatefound', () => { const newWorker = reg.installing; newWorker.addEventListener('statechange', () => { if (newWorker.state === 'installed' && navigator.serviceWorker.controller) { } }); }); reg.update(); });
     }
     </script>
-
 </body>
 </html>
