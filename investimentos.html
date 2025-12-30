@@ -419,11 +419,12 @@
             const elLucro = document.getElementById('lucroTotalDisplay');
             let houveMudanca = false;
 
-            // 2.1 ATUALIZAR CRIPTO (COM MELHORIA DE RANKING)
+            // 2.1 ATUALIZAR CRIPTO (Versão Robusta com Loop de Tentativa)
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
             if (criptos.length > 0) {
                 elLucro.innerText = "Atualizando Cripto...";
                 elLucro.style.color = "var(--accent-yellow)";
+                
                 for (let item of criptos) {
                     try {
                         const query = item.nome.toLowerCase().trim();
@@ -431,34 +432,44 @@
                         const searchData = await searchRes.json();
                         
                         if (searchData.coins && searchData.coins.length > 0) {
-                            // ORDENA POR RANKING IGUAL NO CADASTRO
+                            // 1. ORDENA
                             const moedasOrdenadas = searchData.coins.sort((a, b) => {
                                 const rankA = a.market_cap_rank || 999999;
                                 const rankB = b.market_cap_rank || 999999;
                                 return rankA - rankB;
                             });
 
-                            const coinID = moedasOrdenadas[0].id;
-                            const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
-                            const priceData = await priceRes.json();
+                            // 2. TENTA AS TOP 5 (Mesma lógica do cadastro)
+                            const topCandidatas = moedasOrdenadas.slice(0, 5);
                             
-                            if (priceData[coinID] && priceData[coinID].brl) {
-                                item.precoAtualUnitario = priceData[coinID].brl;
-                                houveMudanca = true;
+                            for (const coin of topCandidatas) {
+                                try {
+                                    const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=brl`);
+                                    const priceData = await priceRes.json();
+                                    
+                                    if (priceData[coin.id] && priceData[coin.id].brl) {
+                                        // Sucesso! Atualiza e para de tentar outras versões dessa moeda
+                                        item.precoAtualUnitario = priceData[coin.id].brl;
+                                        houveMudanca = true;
+                                        break; 
+                                    }
+                                } catch (errInner) {
+                                    // Continua para a próxima candidata
+                                }
                             }
                         }
                     } catch (e) { console.log("Erro Cripto: " + item.nome); }
                 }
             }
 
-            // 2.2 ATUALIZAR B3
+            // 2.2 ATUALIZAR B3 (Permanece igual)
             const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
             if (ativosB3.length > 0) {
                 elLucro.innerText = "Atualizando B3...";
                 elLucro.style.color = "var(--accent-blue)";
                 const tickers = ativosB3.map(i => i.nome).join(',');
                 let urlBrapi = `https://brapi.dev/api/quote/${tickers}?range=1d&interval=1d&fundamental=false`;
-                if(BRAPI_TOKEN && BRAPI_TOKEN !== '4SyUvseEoazmZec7AAntHY') urlBrapi += `&token=${BRAPI_TOKEN}`;
+                if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') urlBrapi += `&token=${BRAPI_TOKEN}`;
                 try {
                     const response = await fetch(urlBrapi);
                     const data = await response.json();
@@ -474,7 +485,7 @@
                 } catch (e) { console.log("Erro B3 API"); }
             }
 
-            // 2.3 ATUALIZAR RENDA FIXA (CDI)
+            // 2.3 ATUALIZAR RENDA FIXA (CDI) (Permanece igual)
             const rendaFixa = carteira.filter(i => i.tipo === 'RendaFixa' && i.taxa && i.taxa.includes('CDI'));
             if (rendaFixa.length > 0) {
                 elLucro.innerText = "Calculando Renda Fixa...";
@@ -492,7 +503,6 @@
                              const dataCriacao = new Date(item.id);
                              dataUltima = dataCriacao.toISOString().split('T')[0];
                         }
-
                         if (dataUltima !== hoje) {
                             const diasParaAtualizar = calcularDiasUteis(dataUltima, hoje);
                             if (diasParaAtualizar > 0) {
