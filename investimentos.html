@@ -205,8 +205,9 @@
                 <a id="stockLink" class="helper-link" target="_blank">Ver cotação ↗</a>
             </div>
             <div class="input-group" id="divTaxa" style="display:none">
-                 <label>Taxa (Opcional)</label>
+                 <label>Taxa (% do CDI)</label>
                  <input type="text" id="taxa" placeholder="Ex: 100% CDI">
+                 <small style="color:var(--text-secondary); font-size:0.7rem">Dica: Escreva '105% CDI' para cálculo automático.</small>
             </div>
             <div class="input-row">
                 <div class="input-group" style="flex:1">
@@ -302,7 +303,7 @@
 
     <script>
         // --- CONFIGURAÇÃO ---
-        const BRAPI_TOKEN = 'SEU_TOKEN_AQUI'; // Coloque seu token aqui
+        const BRAPI_TOKEN = '4SyUvseEoazmZec7AAntHY'; // Coloque seu token aqui
 
         // --- SPLASH SCREEN ---
         window.addEventListener('load', () => {
@@ -339,7 +340,6 @@
             const loading = document.getElementById('loadingCotacao');
             const precoInput = document.getElementById('precoUnitario');
 
-            // Se for Renda Fixa ou vazio, não faz nada
             if (tipo === 'RendaFixa' || nomeInput.value.length < 2) return;
 
             loading.style.display = 'block';
@@ -349,7 +349,6 @@
             const query = nomeInput.value.toLowerCase().trim();
 
             try {
-                // MODO CRIPTO
                 if (tipo === 'Cripto') {
                     const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
                     const searchData = await searchRes.json();
@@ -364,20 +363,14 @@
                         if (priceData[coinID] && priceData[coinID].brl) {
                             precoInput.value = priceData[coinID].brl;
                             loading.style.color = 'var(--accent-green)';
-                            // Recalcula total se já tiver quantidade
                             calcularBidirecional('preco');
                         }
-                    } else {
-                         throw new Error('Não encontrado');
-                    }
+                    } else { throw new Error('Não encontrado'); }
                 } 
-                // MODO B3 (Ação, FII, ETF)
                 else {
                     const ticker = nomeInput.value.toUpperCase().trim();
                     let urlBrapi = `https://brapi.dev/api/quote/${ticker}?range=1d&interval=1d&fundamental=false`;
-                    if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') {
-                        urlBrapi += `&token=${BRAPI_TOKEN}`;
-                    }
+                    if(BRAPI_TOKEN && BRAPI_TOKEN !== '4SyUvseEoazmZec7AAntHY') urlBrapi += `&token=${BRAPI_TOKEN}`;
                     
                     const response = await fetch(urlBrapi);
                     const data = await response.json();
@@ -388,24 +381,20 @@
                         loading.innerText = `Encontrado: R$ ${preco}`;
                         loading.style.color = 'var(--accent-green)';
                         calcularBidirecional('preco');
-                    } else {
-                        throw new Error('Não encontrado');
-                    }
+                    } else { throw new Error('Não encontrado'); }
                 }
             } catch (e) {
-                // SE DER ERRO: Libera para digitar
                 loading.innerText = "Não encontrado (Preencha manualmente)";
                 loading.style.color = "var(--accent-yellow)";
-                // O campo input continua editável, então o usuário pode digitar
             }
         }
 
-        // --- 2. ATUALIZAÇÃO AUTOMÁTICA GERAL (AO ABRIR APP) ---
+        // --- 2. ATUALIZAÇÃO AUTOMÁTICA GERAL (CRIPTO + B3 + RENDA FIXA) ---
         async function atualizarPrecosAutomaticamente() {
             const elLucro = document.getElementById('lucroTotalDisplay');
             let houveMudanca = false;
 
-            // CRIPTO
+            // 2.1 ATUALIZAR CRIPTO
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
             if (criptos.length > 0) {
                 elLucro.innerText = "Atualizando Cripto...";
@@ -424,19 +413,18 @@
                                 houveMudanca = true;
                             }
                         }
-                    } catch (e) { console.log("Erro Cripto: " + item.nome); }
+                    } catch (e) { console.log("Erro Cripto"); }
                 }
             }
 
-            // B3 (Ação, FII, ETF)
+            // 2.2 ATUALIZAR B3
             const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
             if (ativosB3.length > 0) {
                 elLucro.innerText = "Atualizando B3...";
                 elLucro.style.color = "var(--accent-blue)";
                 const tickers = ativosB3.map(i => i.nome).join(',');
                 let urlBrapi = `https://brapi.dev/api/quote/${tickers}?range=1d&interval=1d&fundamental=false`;
-                if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') urlBrapi += `&token=${BRAPI_TOKEN}`;
-
+                if(BRAPI_TOKEN && BRAPI_TOKEN !== '4SyUvseEoazmZec7AAntHY') urlBrapi += `&token=${BRAPI_TOKEN}`;
                 try {
                     const response = await fetch(urlBrapi);
                     const data = await response.json();
@@ -452,7 +440,70 @@
                 } catch (e) { console.log("Erro B3 API"); }
             }
 
+            // 2.3 ATUALIZAR RENDA FIXA (CDI)
+            const rendaFixa = carteira.filter(i => i.tipo === 'RendaFixa' && i.taxa && i.taxa.includes('CDI'));
+            if (rendaFixa.length > 0) {
+                elLucro.innerText = "Calculando Renda Fixa...";
+                try {
+                    // Busca taxa CDI atual na BrasilAPI
+                    const response = await fetch('https://brasilapi.com.br/api/taxas/v1');
+                    const taxas = await response.json();
+                    const cdiAnual = taxas.find(t => t.nome === 'CDI')?.valor || 11.15; // Fallback se falhar
+                    
+                    const hoje = new Date().toISOString().split('T')[0];
+                    
+                    rendaFixa.forEach(item => {
+                        // Extrai a porcentagem (ex: "105% CDI" -> 105)
+                        const match = item.taxa.match(/(\d+)%/);
+                        const percentualCDI = match ? parseFloat(match[1]) / 100 : 1.0;
+                        
+                        // Data da última atualização (ou data da criação se não tiver)
+                        // Converte timestamp ID para data YYYY-MM-DD se não tiver lastUpdate
+                        let dataUltima = item.dataUltimaAtualizacao;
+                        if (!dataUltima) {
+                             const dataCriacao = new Date(item.id);
+                             dataUltima = dataCriacao.toISOString().split('T')[0];
+                        }
+
+                        if (dataUltima !== hoje) {
+                            // Calcula dias úteis (simplificado: dias da semana)
+                            const diasParaAtualizar = calcularDiasUteis(dataUltima, hoje);
+                            
+                            if (diasParaAtualizar > 0) {
+                                // Fator diário: (1 + taxa)^(1/252) - 1
+                                const fatorDiario = Math.pow(1 + (cdiAnual / 100), 1 / 252) - 1;
+                                const fatorComPercentual = fatorDiario * percentualCDI;
+                                
+                                // Juros Compostos
+                                const novoValor = item.precoAtualUnitario * Math.pow(1 + fatorComPercentual, diasParaAtualizar);
+                                
+                                item.precoAtualUnitario = novoValor;
+                                item.dataUltimaAtualizacao = hoje;
+                                houveMudanca = true;
+                            }
+                        }
+                    });
+                } catch (e) { console.log("Erro CDI: " + e); }
+            }
+
             if (houveMudanca) salvarTudo(); else render();
+        }
+
+        // Função auxiliar para contar dias úteis (Seg-Sex)
+        function calcularDiasUteis(inicio, fim) {
+            let count = 0;
+            let curDate = new Date(inicio);
+            const endDate = new Date(fim);
+            
+            // Avança um dia para não contar o próprio dia inicial
+            curDate.setDate(curDate.getDate() + 1);
+
+            while (curDate <= endDate) {
+                const dayOfWeek = curDate.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) count++; // 0=Dom, 6=Sab
+                curDate.setDate(curDate.getDate() + 1);
+            }
+            return count;
         }
 
         // --- PREFERÊNCIAS ---
@@ -575,7 +626,7 @@
         }
 
         function exportarDados() {
-            const dados = { carteira: carteira, historico: historico, versao: '14.2' };
+            const dados = { carteira: carteira, historico: historico, versao: '15.0' };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dados));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -615,7 +666,7 @@
             });
         }
 
-        // --- FORMULÁRIO (ATUALIZADO PARA MOSTRAR EXEMPLOS) ---
+        // --- FORMULÁRIO ---
         function ajustarFormulario() {
             const tipo = document.getElementById('tipo').value;
             const inpNome = document.getElementById('nomeAtivo');
@@ -623,10 +674,9 @@
             const loading = document.getElementById('loadingCotacao'); 
             const linkStock = document.getElementById('stockLink');
             
-            // Reseta visual padrão
             loading.style.display = 'none';
-            linkStock.style.display = 'block'; // Mostra por padrão
-            linkStock.href = `https://investidor10.com.br/`; // Link novo fixo
+            linkStock.style.display = 'block'; 
+            linkStock.href = `https://investidor10.com.br/`; 
 
             document.getElementById('divTaxa').style.display = 'none';
             document.getElementById('precoUnitario').parentElement.style.display = 'flex';
@@ -637,19 +687,17 @@
             const inpTotal = document.getElementById('valorTotalInput');
             inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
             
-            // Textos padrão da B3
             document.getElementById('lblPreco').innerText = "Preço Pago";
             document.getElementById('lblQtd').innerText = "Quantidade";
             inpTotal.placeholder = "Total (R$)";
 
-            // Lógica Específica
             if(tipo === 'Cripto') {
                 lblNome.innerText = "Nome da Moeda";
                 inpNome.placeholder = "Ex: bitcoin, ethereum, solana";
                 document.getElementById('lblPreco').innerText = "Cotação Atual (R$)";
                 document.getElementById('lblQtd').innerText = "Qtd. Moedas";
                 inpTotal.placeholder = "Valor Gasto (R$)";
-                linkStock.style.display = 'none'; // Sem link para cripto
+                linkStock.style.display = 'none'; 
             } 
             else if (tipo === 'RendaFixa') {
                 lblNome.innerText = "Investimento";
@@ -658,7 +706,7 @@
                 document.getElementById('precoUnitario').parentElement.style.display = 'none';
                 document.getElementById('divQtd').style.display = 'none';
                 inpTotal.placeholder = "Valor Aportado (R$)";
-                linkStock.style.display = 'none'; // Sem link para renda fixa
+                linkStock.style.display = 'none'; 
             }
             else if (tipo === 'FII') {
                 lblNome.innerText = "Código FII";
@@ -668,7 +716,7 @@
                 lblNome.innerText = "Código ETF";
                 inpNome.placeholder = "Ex: IVVB11, BOVA11, SMAL11";
             }
-            else { // Ação
+            else { 
                 lblNome.innerText = "Código Ação";
                 inpNome.placeholder = "Ex: PETR4, VALE3, ITUB4";
             }
@@ -680,7 +728,20 @@
             const tipo = document.getElementById('tipo').value;
             const nome = document.getElementById('nomeAtivo').value.toUpperCase();
             if(!nome) return alert("Preencha o nome.");
-            let item = { id: Date.now(), tipo, nome, qtd:0, precoMedioCompra:0, precoAtualUnitario:0, valorInvestidoOriginal:0, taxa:'' };
+            
+            // AGORA SALVAMOS TAMBÉM A DATA DA ÚLTIMA ATUALIZAÇÃO COMO HOJE
+            let item = { 
+                id: Date.now(), 
+                tipo, 
+                nome, 
+                qtd:0, 
+                precoMedioCompra:0, 
+                precoAtualUnitario:0, 
+                valorInvestidoOriginal:0, 
+                taxa:'', 
+                dataUltimaAtualizacao: new Date().toISOString().split('T')[0] 
+            };
+            
             if(tipo === 'RendaFixa') {
                 item.valorInvestidoOriginal = parseFloat(document.getElementById('valorTotalInput').value);
                 item.precoAtualUnitario = item.valorInvestidoOriginal;
@@ -719,7 +780,23 @@
             icon.style.color = privacidadeAtiva ? 'var(--accent-red)' : 'var(--text-color)';
         }
         function abrirModalConfig() { document.getElementById('modalConfig').style.display = 'flex'; }
-        function abrirModalAdd() { document.getElementById('modalAdd').style.display = 'flex'; ajustarFormulario(); }
+        function abrirModalAdd() { 
+            // 1. LIMPA OS CAMPOS (Reseta tudo para vazio)
+            document.getElementById('nomeAtivo').value = '';
+            document.getElementById('taxa').value = '';
+            document.getElementById('precoUnitario').value = '';
+            document.getElementById('qtd').value = '';
+            document.getElementById('valorTotalInput').value = '';
+            
+            // 2. RESETA STATUS VISUAIS (Esconde mensagens de "buscando...")
+            document.getElementById('loadingCotacao').style.display = 'none';
+
+            // 3. ABRE A JANELA
+            document.getElementById('modalAdd').style.display = 'flex'; 
+            
+            // 4. REAJUSTA O FORMULÁRIO (Para os placeholders voltarem ao padrão)
+            ajustarFormulario(); 
+        }
         function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
         
         function abrirModalUpdate(id, modo) {
@@ -738,11 +815,21 @@
             document.getElementById('updValor').value = '';
             document.getElementById('modalUpdate').style.display = 'flex';
         }
+        // ATUALIZAR MANUALMENTE O SALDO DE RENDA FIXA (OU COTAÇÃO)
         function salvarAtualizacao() {
             const id = parseInt(document.getElementById('updId').value);
             const v = parseFloat(document.getElementById('updValor').value);
             const index = carteira.findIndex(i => i.id === id);
-            if(index !== -1 && !isNaN(v)) { carteira[index].precoAtualUnitario = v; salvarTudo(); fecharModal('modalUpdate'); }
+            if(index !== -1 && !isNaN(v)) { 
+                carteira[index].precoAtualUnitario = v; 
+                // Se o usuário editar manualmente a Renda Fixa, atualizamos a data para hoje
+                // para o robô só calcular juros a partir de amanhã sobre o novo valor
+                if(carteira[index].tipo === 'RendaFixa') {
+                    carteira[index].dataUltimaAtualizacao = new Date().toISOString().split('T')[0];
+                }
+                salvarTudo(); 
+                fecharModal('modalUpdate'); 
+            }
         }
         function abrirModalDelete(id) { document.getElementById('delId').value = id; document.getElementById('modalDelete').style.display = 'flex'; }
         function confirmarExclusao() { 
