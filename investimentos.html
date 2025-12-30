@@ -343,7 +343,7 @@
             if (tipo === 'RendaFixa' || nomeInput.value.length < 2) return;
 
             loading.style.display = 'block';
-            loading.innerText = 'Buscando cotação...';
+            loading.innerText = 'Buscando...';
             loading.style.color = 'var(--accent-blue)';
             
             const query = nomeInput.value.toLowerCase().trim();
@@ -354,31 +354,47 @@
                     const searchData = await searchRes.json();
                     
                     if (searchData.coins && searchData.coins.length > 0) {
-                        // --- MELHORIA AQUI: ORDENAR POR RANKING ---
-                        // Pega a moeda com o melhor ranking (menor número) para evitar moedas fakes/clones
+                        // 1. ORDENA POR RANKING (Melhores primeiro)
                         const moedasOrdenadas = searchData.coins.sort((a, b) => {
                             const rankA = a.market_cap_rank || 999999;
                             const rankB = b.market_cap_rank || 999999;
                             return rankA - rankB;
                         });
 
-                        const coinID = moedasOrdenadas[0].id; // Pega a top 1 do ranking
-                        loading.innerText = `Encontrado: ${moedasOrdenadas[0].name}`;
+                        // 2. LOOP DE TENTATIVA (Tenta as top 5 moedas até achar uma com preço)
+                        let encontrouPreco = false;
                         
-                        const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
-                        const priceData = await priceRes.json();
+                        // Pegamos apenas as 5 primeiras para não estourar o limite da API
+                        const topCandidatas = moedasOrdenadas.slice(0, 5);
 
-                        if (priceData[coinID] && priceData[coinID].brl) {
-                            precoInput.value = priceData[coinID].brl;
-                            loading.style.color = 'var(--accent-green)';
-                            calcularBidirecional('preco');
+                        for (const coin of topCandidatas) {
+                            try {
+                                const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin.id}&vs_currencies=brl`);
+                                const priceData = await priceRes.json();
+
+                                if (priceData[coin.id] && priceData[coin.id].brl) {
+                                    // SUCESSO! Achamos uma moeda com preço válido
+                                    precoInput.value = priceData[coin.id].brl;
+                                    loading.innerText = `Encontrado: ${coin.name} (${coin.symbol})`;
+                                    loading.style.color = 'var(--accent-green)';
+                                    calcularBidirecional('preco');
+                                    encontrouPreco = true;
+                                    break; // Para o loop pois já achou
+                                }
+                            } catch (errLoop) {
+                                console.log("Tentativa falhou para: " + coin.id);
+                            }
                         }
+
+                        if (!encontrouPreco) throw new Error('Sem preço disponível');
+
                     } else { throw new Error('Não encontrado'); }
                 } 
                 else {
+                    // LÓGICA DA B3 (Permanece igual)
                     const ticker = nomeInput.value.toUpperCase().trim();
                     let urlBrapi = `https://brapi.dev/api/quote/${ticker}?range=1d&interval=1d&fundamental=false`;
-                    if(BRAPI_TOKEN && BRAPI_TOKEN !== '4SyUvseEoazmZec7AAntHY') urlBrapi += `&token=${BRAPI_TOKEN}`;
+                    if(BRAPI_TOKEN && BRAPI_TOKEN !== 'SEU_TOKEN_AQUI') urlBrapi += `&token=${BRAPI_TOKEN}`;
                     
                     const response = await fetch(urlBrapi);
                     const data = await response.json();
@@ -392,6 +408,7 @@
                     } else { throw new Error('Não encontrado'); }
                 }
             } catch (e) {
+                console.error(e); // Ajuda a ver o erro no F12 se precisar
                 loading.innerText = "Não encontrado (Preencha manualmente)";
                 loading.style.color = "var(--accent-yellow)";
             }
