@@ -56,7 +56,17 @@
             box-sizing: border-box; 
         }
         
-        .header-left .app-name { font-size: 1.2rem; font-weight: 800; white-space: nowrap; }
+        /* Ajuste para telas pequenas */
+        .header-left .app-name { 
+            font-size: 1.2rem; font-weight: 800; white-space: nowrap; 
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        @media (max-width: 380px) {
+            .header-left .app-name { font-size: 1.0rem; }
+            .header-right { gap: 12px; }
+            .header-content { padding: 0 10px; }
+        }
+
         .header-right { display: flex; gap: 20px; align-items: center; }
         
         .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); padding: 5px; transition: opacity 0.2s; }
@@ -79,11 +89,11 @@
         .charts-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
         .chart-box { 
             background: var(--card-bg); padding: 15px; border-radius: 15px; 
-            border: 1px solid var(--border-color); height: 260px; 
+            border: 1px solid var(--border-color); height: 320px; /* Aumentado para caber gráfico maior */
             position: relative; display: flex; flex-direction: column; 
             align-items: center; justify-content: center;
         }
-        .chart-wrapper { position: relative; height: 235px; width: 100%; display: flex; justify-content: center; }
+        .chart-wrapper { position: relative; height: 260px; width: 100%; display: flex; justify-content: center; }
         h4 { margin: 0 0 10px 0; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; text-align: center; text-transform: uppercase; letter-spacing: 1px; width: 100%; }
 
         /* LISTA */
@@ -150,7 +160,7 @@
     <div class="header-wrapper">
         <div class="header-content">
             <div class="header-left">
-                <div class="app-name">Carteira</div>
+                <div class="app-name">Carteira de Investimentos</div>
             </div>
             <div class="header-right">
                 <a href="index.html" class="icon-btn" title="Ir para Finanças"><i class="fas fa-home"></i></a>
@@ -241,7 +251,6 @@
     <div id="modalConfig" class="modal">
         <div class="modal-content">
             <h3 class="form-title">Configurações</h3>
-            
             <div class="config-option" onclick="alternarTema()">
                 <i class="fas fa-adjust" style="color: #90a4ae"></i>
                 <div>
@@ -249,7 +258,6 @@
                     <small style="color:var(--text-secondary)">Claro / Escuro</small>
                 </div>
             </div>
-
             <div class="config-option" onclick="exportarDados()">
                 <i class="fas fa-download" style="color:var(--accent-blue)"></i>
                 <div>
@@ -257,7 +265,6 @@
                     <small style="color:var(--text-secondary)">Salvar dados no celular</small>
                 </div>
             </div>
-
             <label for="fileInput" class="config-option">
                 <i class="fas fa-upload" style="color:var(--accent-green)"></i>
                 <div>
@@ -266,7 +273,6 @@
                 </div>
             </label>
             <input type="file" id="fileInput" class="hidden-file" accept=".json" onchange="importarDados(this)">
-
             <div class="config-option" onclick="confirmarReset()" style="border-color:var(--accent-red)">
                 <i class="fas fa-trash" style="color:var(--accent-red)"></i>
                 <div>
@@ -274,7 +280,6 @@
                     <small style="color:var(--text-secondary)">Zerar aplicativo</small>
                 </div>
             </div>
-
             <button class="btn-cancel" style="width:100%; margin-top:10px" onclick="fecharModal('modalConfig')">Fechar</button>
         </div>
     </div>
@@ -322,6 +327,9 @@
                 splash.style.opacity = '0';
                 setTimeout(() => splash.style.visibility = 'hidden', 500);
             }, 1200);
+            
+            // INICIAR ATUALIZAÇÃO AUTOMÁTICA DE CRIPTO
+            atualizarCriptosAutomaticamente();
         });
 
         // --- DADOS ---
@@ -340,6 +348,43 @@
         carregarPref();
         render();
         atualizarIconeOlho();
+
+        // --- FUNCIONALIDADE NOVA: ATUALIZAÇÃO AUTOMÁTICA CRIPTO ---
+        async function atualizarCriptosAutomaticamente() {
+            const criptos = carteira.filter(i => i.tipo === 'Cripto');
+            
+            if (criptos.length > 0) {
+                // Aviso visual discreto
+                const elLucro = document.getElementById('lucroTotalDisplay');
+                elLucro.innerText = "Atualizando Cripto...";
+                elLucro.style.color = "var(--accent-yellow)";
+
+                for (let item of criptos) {
+                    try {
+                        const query = item.nome.toLowerCase().trim();
+                        // 1. Busca o ID correto (ex: Bitcoin -> bitcoin)
+                        const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
+                        const searchData = await searchRes.json();
+                        
+                        if (searchData.coins && searchData.coins.length > 0) {
+                            const coinID = searchData.coins[0].id;
+                            // 2. Busca o preço atualizado
+                            const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
+                            const priceData = await priceRes.json();
+
+                            if (priceData[coinID] && priceData[coinID].brl) {
+                                // Atualiza o preço unitário na carteira
+                                item.precoAtualUnitario = priceData[coinID].brl;
+                            }
+                        }
+                    } catch (e) {
+                        console.log("Erro ao atualizar " + item.nome);
+                    }
+                }
+                // Salva e Recalcula tudo
+                salvarTudo();
+            }
+        }
 
         // --- PREFERÊNCIAS ---
         function carregarPref() {
@@ -556,7 +601,7 @@
             } catch (e) { loading.innerText = "Erro na conexão."; }
         }
 
-        // --- FORMULÁRIO ---
+        // --- FORMULÁRIO (AGORA COM EXEMPLOS) ---
         function ajustarFormulario() {
             const tipo = document.getElementById('tipo').value;
             const inpNome = document.getElementById('nomeAtivo');
@@ -577,31 +622,54 @@
             
             inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
             
+            // LÓGICA DE EXEMPLOS
             if(tipo === 'Cripto') {
                 lblNome.innerText = "Nome da Moeda";
-                inpNome.placeholder = "bitcoin, pepe, solana";
+                inpNome.placeholder = "Ex: bitcoin, ethereum, solana";
                 document.getElementById('lblPreco').innerText = "Cotação Atual (R$)";
                 document.getElementById('lblQtd').innerText = "Qtd. Moedas";
                 inpTotal.placeholder = "Valor Gasto (R$)";
             } 
             else if (tipo === 'RendaFixa') {
                 lblNome.innerText = "Investimento";
-                inpNome.placeholder = "CDB, Tesouro, LCI";
+                inpNome.placeholder = "Ex: CDB Nubank, Tesouro Selic";
                 document.getElementById('divTaxa').style.display = 'flex';
                 document.getElementById('precoUnitario').parentElement.style.display = 'none';
                 document.getElementById('divQtd').style.display = 'none';
                 inpTotal.placeholder = "Valor Aportado (R$)";
             }
-            else {
-                lblNome.innerText = "Código";
-                inpNome.placeholder = "PETR4, MXRF11";
+            else if (tipo === 'FII') {
+                lblNome.innerText = "Código FII";
+                inpNome.placeholder = "Ex: MXRF11, HGLG11, VISC11";
                 document.getElementById('lblPreco').innerText = "Preço Pago";
                 document.getElementById('lblQtd').innerText = "Quantidade";
                 inpTotal.placeholder = "Total (R$)";
                 linkStock.style.display = 'block';
                 linkStock.href = `https://www.google.com/finance/`;
             }
-            inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = '';
+            else if (tipo === 'ETF') {
+                lblNome.innerText = "Código ETF";
+                inpNome.placeholder = "Ex: IVVB11, BOVA11, SMAL11";
+                document.getElementById('lblPreco').innerText = "Preço Pago";
+                document.getElementById('lblQtd').innerText = "Quantidade";
+                inpTotal.placeholder = "Total (R$)";
+                linkStock.style.display = 'block';
+                linkStock.href = `https://www.google.com/finance/`;
+            }
+            else { // Ações
+                lblNome.innerText = "Código Ação";
+                inpNome.placeholder = "Ex: PETR4, VALE3, ITUB4";
+                document.getElementById('lblPreco').innerText = "Preço Pago";
+                document.getElementById('lblQtd').innerText = "Quantidade";
+                inpTotal.placeholder = "Total (R$)";
+                linkStock.style.display = 'block';
+                linkStock.href = `https://www.google.com/finance/`;
+            }
+            
+            // Limpa campos se estiver vazio (apenas visual)
+            if(inpNome.value === '') {
+                 inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = '';
+            }
         }
 
         function salvarInvestimento() {
@@ -702,17 +770,13 @@
 
         // --- GRÁFICOS ---
         
-        // GRÁFICO PIZZA (COM PORCENTAGEM E TOOLTIP MELHORADO)
         function renderGraficoPizza(dados) {
             const ctx = document.getElementById('graficoAlocacao');
             const txtColor = document.body.classList.contains('light-mode') ? '#333' : '#aaa';
-            
-            // Cálculos
             const valores = Object.values(dados);
             const chaves = Object.keys(dados);
             const total = valores.reduce((a, b) => a + b, 0);
             
-            // Labels com porcentagem
             const labelsComPorcentagem = chaves.map((chave, index) => {
                 const val = valores[index];
                 const perc = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
@@ -723,7 +787,7 @@
             chartPizza = new Chart(ctx, {
                 type: 'doughnut',
                 data: { 
-                    labels: labelsComPorcentagem, // Labels novos
+                    labels: labelsComPorcentagem, 
                     datasets: [{ 
                         data: valores, 
                         backgroundColor: chaves.map(getCor), 
@@ -736,23 +800,14 @@
                     plugins: { 
                         legend: { 
                             position: 'right', 
-                            labels: { 
-                                color: txtColor, 
-                                boxWidth:10, 
-                                font: {size: 13} 
-                            } 
+                            labels: { color: txtColor, boxWidth:10, font: {size: 13} } 
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    // Customizando tooltip: Label + Valor R$
                                     let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed !== null) {
-                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
-                                    }
+                                    if (label) label += ': ';
+                                    if (context.parsed !== null) label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
                                     return label;
                                 }
                             }
@@ -762,7 +817,6 @@
             });
         }
 
-        // GRÁFICO MENSAL (BARRAS FINAS)
         function renderGraficoEvolucaoMensal() {
             const ctx = document.getElementById('graficoEvolucao');
             const txtColor = document.body.classList.contains('light-mode') ? '#666' : '#888';
@@ -813,35 +867,29 @@
             });
         }
     </script>
-
+    
     <script>
-    // Script de Atualização Automática
+    // Script de Atualização Automática SW
     if ('serviceWorker' in navigator) {
         let refreshing = false;
-
-        // 1. Quando o SW detectar mudança, recarrega a página sozinho
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
                 refreshing = true;
                 window.location.reload();
             }
         });
-
         navigator.serviceWorker.register('./sw.js').then(reg => {
-            // 2. Toda vez que abrir, verifica no GitHub se o sw.js mudou
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Nova versão encontrada! O controllerchange (acima) vai disparar o reload.
                     }
                 });
             });
-            // Força a verificação agora
             reg.update();
         });
     }
-</script>
+    </script>
 
 </body>
 </html>
