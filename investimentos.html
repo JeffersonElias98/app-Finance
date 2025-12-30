@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Invest</title>
+    
+    <link rel="icon" href="icon-512.png" type="image/png">
+    <link rel="manifest" href="manifest.json">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- VARIÁVEIS --- */
+        :root {
+            --bg-color: #121212; --header-bg: #1e1e1e; --card-bg: #1e1e1e;
+            --text-color: #ffffff; --text-secondary: #aaaaaa; --border-color: #333333;
+            --accent-green: #4CAF50; --accent-red: #ff5252; --accent-yellow: #FFC107; --accent-blue: #2196F3;
+            --input-bg: #262626; --modal-bg: #2c2c2c;
+            --shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        body.light-mode {
+            --bg-color: #f4f6f8; --header-bg: #ffffff; --card-bg: #ffffff;
+            --text-color: #333333; --text-secondary: #666666; --border-color: #e0e0e0;
+            --input-bg: #f0f0f0; --modal-bg: #ffffff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        body { 
+            background: var(--bg-color); color: var(--text-color); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; 
+            padding-bottom: 100px; padding-top: 80px;
+            -webkit-tap-highlight-color: transparent; 
+            transition: background-color 0.3s;
+        }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #121212; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        .splash-logo { font-size: 5rem; position: relative; display: flex; align-items: flex-end; justify-content: center; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* --- CABEÇALHO --- */
+        .header-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; background-color: var(--header-bg);
+            z-index: 100; box-shadow: var(--shadow); border-bottom: 1px solid var(--border-color);
+            display: flex; padding-top: env(safe-area-inset-top);
+        }
+        .header-content { 
+            width: 100%; height: 70px; padding: 0 20px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            box-sizing: border-box; 
+        }
+        
+        .header-left .app-name { font-size: 1.2rem; font-weight: 800; white-space: nowrap; }
+        .header-right { display: flex; gap: 20px; align-items: center; }
+        
+        .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); padding: 5px; transition: opacity 0.2s; }
+        .icon-btn:hover { opacity: 0.8; }
+
+        /* --- PRIVACIDADE --- */
+        .blur-text { filter: blur(8px); user-select: none; }
+        body.privacy-active canvas { filter: blur(10px); opacity: 0.5; }
+
+        /* --- CARDS & GRÁFICOS --- */
+        .resumo-card { 
+            background: linear-gradient(135deg, var(--card-bg) 0%, var(--header-bg) 100%); 
+            width: 100%; max-width: 600px; padding: 25px; border-radius: 20px; 
+            margin-bottom: 20px; text-align: center; border: 1px solid var(--border-color); 
+            box-sizing: border-box; position: relative; overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .valor-total { font-size: 2rem; font-weight: bold; color: var(--text-color); margin: 10px 0; }
+        
+        .charts-container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        .chart-box { 
+            background: var(--card-bg); padding: 15px; border-radius: 15px; 
+            border: 1px solid var(--border-color); height: 260px; 
+            position: relative; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center;
+        }
+        .chart-wrapper { position: relative; height: 235px; width: 100%; display: flex; justify-content: center; }
+        h4 { margin: 0 0 10px 0; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; text-align: center; text-transform: uppercase; letter-spacing: 1px; width: 100%; }
+
+        /* LISTA */
+        .lista-ativos { width: 100%; max-width: 600px; }
+        .ativo-card { background: var(--card-bg); padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .ativo-info h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+        .ativo-info small { color: var(--text-secondary); font-size: 0.8rem; display: block; margin-top: 4px; }
+        .ativo-valores { text-align: right; }
+        
+        .btn-cotacao { background: #333; border: 1px solid var(--border-color); color: #fff; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 5px; display: inline-flex; align-items: center; gap: 5px; }
+
+        /* BOTÃO PRINCIPAL */
+        .btn-main { width: 100%; max-width: 600px; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; color: #fff; background: var(--accent-blue); cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3); }
+        .btn-main:active { transform: scale(0.98); }
+
+        /* MODAIS */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--modal-bg); padding: 25px; border-radius: 24px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        
+        .form-title { font-size: 1.2rem; margin: 0 0 5px 0; color: var(--text-color); }
+        
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-row { display: flex; gap: 12px; }
+        
+        label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; margin-left: 2px; }
+        
+        input, select { 
+            padding: 14px; background: var(--input-bg); border: 1px solid var(--border-color); 
+            color: var(--text-color); border-radius: 12px; width: 100%; box-sizing: border-box; 
+            font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--accent-blue); }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-confirm { flex: 1; padding: 14px; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; background: var(--accent-blue); }
+        .btn-cancel { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: transparent; color: var(--text-secondary); cursor: pointer; }
+        .btn-danger { background: rgba(255, 82, 82, 0.1); color: var(--accent-red); border: 1px solid var(--accent-red); flex: 1; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: bold; }
+
+        .loading-text { font-size: 0.75rem; color: var(--accent-green); display: none; margin-top: -5px; margin-bottom: 5px; }
+        .helper-link { font-size: 0.75rem; color: var(--accent-blue); text-decoration: none; margin-top: -5px; display: none; cursor: pointer;}
+        
+        /* Menu Config */
+        .config-option { 
+            padding: 15px; background: var(--input-bg); border-radius: 12px; margin-bottom: 10px; 
+            cursor: pointer; display: flex; align-items: center; gap: 15px; 
+            border: 1px solid var(--border-color); color: var(--text-color);
+        }
+        .config-option:active { opacity: 0.8; }
+        .config-option i { font-size: 1.2rem; }
+        .hidden-file { display: none; }
+
+        .footer-credits { text-align: center; color: var(--text-color); font-size: 0.85rem; margin-top: 20px; padding-bottom: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="splash-logo" style="flex-direction: column; align-items: center;">
+            <img src="logo.png" style="width: 180px; height: auto; margin-bottom: 30px; animation: bounce 1.5s infinite;"> 
+        </div>
+        <h2 style="color: white; font-family: sans-serif; margin: 0; letter-spacing: 2px;">MONEY INVEST</h2>
+    </div>
+
+    <div class="header-wrapper">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="app-name">Carteira de Investimentos</div>
+            </div>
+            <div class="header-right">
+                <a href="index.html" class="icon-btn" title="Ir para Finanças"><i class="fas fa-home"></i></a>
+                <button class="icon-btn" onclick="togglePrivacidade()"><i class="fas fa-eye" id="eyeIcon"></i></button>
+                <button class="icon-btn" onclick="abrirModalConfig()"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="resumo-card">
+        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 5px;">Patrimônio Total</div>
+        <div class="valor-total" id="totalDisplay">R$ 0,00</div>
+        <div id="lucroTotalDisplay" style="font-size: 0.9rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; display: inline-block;">---</div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box">
+            <h4>Evolução Mensal</h4>
+            <div class="chart-wrapper">
+                <canvas id="graficoEvolucao"></canvas>
+            </div>
+        </div>
+        <div class="chart-box">
+            <h4>Alocação de Ativos</h4>
+            <div class="chart-wrapper">
+                <canvas id="graficoAlocacao"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-main" onclick="abrirModalAdd()">+ Novo Investimento</button>
+
+    <div id="listaAtivos" class="lista-ativos"></div>
+    
+    <div class="footer-credits">made by JEFFERSON ELIAS</div>
+
+    <div id="modalAdd" class="modal">
+        <div class="modal-content">
+            <h3 class="form-title">Novo Ativo</h3>
+            
+            <div class="input-group">
+                <label>Categoria</label>
+                <select id="tipo" onchange="ajustarFormulario()">
+                    <option value="Ação">Ações (B3)</option>
+                    <option value="FII">FIIs</option>
+                    <option value="Cripto">Criptomoedas</option>
+                    <option value="ETF">ETFs</option>
+                    <option value="RendaFixa">Renda Fixa</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label id="lblNome">Código / Nome</label>
+                <input type="text" id="nomeAtivo" placeholder="Ex: PETR4" onblur="buscarCriptoSmart()">
+                <small id="criptoLoading" class="loading-text">Buscando cotação...</small>
+                <a id="stockLink" class="helper-link" target="_blank">Ver cotação no Google ↗</a>
+            </div>
+            
+            <div class="input-group" id="divTaxa" style="display:none">
+                 <label>Taxa (Opcional)</label>
+                 <input type="text" id="taxa" placeholder="Ex: 100% CDI">
+            </div>
+
+            <div class="input-row">
+                <div class="input-group" style="flex:1">
+                    <label id="lblPreco">Preço Unit.</label>
+                    <input type="number" id="precoUnitario" placeholder="0,00" step="0.00000001" onkeyup="calcularBidirecional('preco')">
+                </div>
+                
+                <div class="input-group" style="flex:1" id="divQtd">
+                    <label id="lblQtd">Quantidade</label>
+                    <input type="number" id="qtd" placeholder="0" step="0.00000001" onkeyup="calcularBidirecional('qtd')">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label id="lblTotal">Total Investido (R$)</label>
+                <input type="number" id="valorTotalInput" placeholder="0,00" step="0.01" onkeyup="calcularBidirecional('total')">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="fecharModal('modalAdd')">Cancelar</button>
+                <button class="btn-confirm" onclick="salvarInvestimento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalConfig" class="modal">
+        <div class="modal-content">
+            <h3 class="form-title">Configurações</h3>
+            
+            <div class="config-option" onclick="alternarTema()">
+                <i class="fas fa-adjust" style="color: #90a4ae"></i>
+                <div>
+                    <div style="font-weight:bold">Alternar Tema</div>
+                    <small style="color:var(--text-secondary)">Claro / Escuro</small>
+                </div>
+            </div>
+
+            <div class="config-option" onclick="exportarDados()">
+                <i class="fas fa-download" style="color:var(--accent-blue)"></i>
+                <div>
+                    <div style="font-weight:bold">Fazer Backup</div>
+                    <small style="color:var(--text-secondary)">Salvar dados no celular</small>
+                </div>
+            </div>
+
+            <label for="fileInput" class="config-option">
+                <i class="fas fa-upload" style="color:var(--accent-green)"></i>
+                <div>
+                    <div style="font-weight:bold">Restaurar Backup</div>
+                    <small style="color:var(--text-secondary)">Carregar arquivo salvo</small>
+                </div>
+            </label>
+            <input type="file" id="fileInput" class="hidden-file" accept=".json" onchange="importarDados(this)">
+
+            <div class="config-option" onclick="confirmarReset()" style="border-color:var(--accent-red)">
+                <i class="fas fa-trash" style="color:var(--accent-red)"></i>
+                <div>
+                    <div style="font-weight:bold; color:var(--accent-red)">Apagar Tudo</div>
+                    <small style="color:var(--text-secondary)">Zerar aplicativo</small>
+                </div>
+            </div>
+
+            <button class="btn-cancel" style="width:100%; margin-top:10px" onclick="fecharModal('modalConfig')">Fechar</button>
+        </div>
+    </div>
+
+    <div id="modalConfirmacao" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 id="confTitulo" class="form-title">Confirmação</h3>
+            <p id="confMsg" style="color: var(--text-secondary); margin-bottom:20px;">Tem certeza?</p>
+            <button id="btnConfSim" class="btn-danger" style="width:100%; margin-bottom: 10px; padding:15px;">Sim, Confirmar</button>
+            <button class="btn-cancel" style="width:100%;" onclick="fecharModal('modalConfirmacao')">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modalUpdate" class="modal">
+        <div class="modal-content">
+            <h3 class="form-title" id="updTitulo">Atualizar</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin:0" id="updDesc">...</p>
+            <input type="hidden" id="updId">
+            <input type="hidden" id="updMode">
+            <div class="input-group"><label id="updLabel">Novo Valor</label><input type="number" id="updValor" step="0.00000001"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="fecharModal('modalUpdate')">Cancelar</button>
+                <button class="btn-confirm" style="background: var(--accent-green);" onclick="salvarAtualizacao()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDelete" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 class="form-title" style="color: var(--accent-red);">Excluir Ativo</h3>
+            <p style="color:var(--text-secondary);">Tem certeza? Isso é irreversível.</p>
+            <input type="hidden" id="delId">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="fecharModal('modalDelete')">Não</button>
+                <button class="btn-confirm" style="background: var(--accent-red);" onclick="confirmarExclusao()">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SPLASH SCREEN ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.visibility = 'hidden', 500);
+            }, 1200);
+        });
+
+        // --- DADOS ---
+        const DB_KEY = 'invest_jeff_v10';
+        const HIST_KEY = 'invest_jeff_history';
+        const PRIV_KEY = 'invest_privacy';
+
+        let carteira = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        let historico = JSON.parse(localStorage.getItem(HIST_KEY)) || [];
+        let privacidadeAtiva = localStorage.getItem(PRIV_KEY) === 'true';
+        let chartPizza = null;
+        let chartBarra = null;
+        let callbackConfirmacao = null;
+
+        // --- INICIALIZAÇÃO ---
+        carregarPref();
+        render();
+        atualizarIconeOlho();
+
+        // --- PREFERÊNCIAS ---
+        function carregarPref() {
+            if (localStorage.getItem('tema') === 'light') {
+                document.body.classList.add('light-mode');
+            }
+        }
+
+        function alternarTema() {
+            const isLight = document.body.classList.toggle('light-mode');
+            localStorage.setItem('tema', isLight ? 'light' : 'dark');
+            render();
+        }
+
+        function mostrarConfirmacao(titulo, msg, callback) {
+            document.getElementById('confTitulo').innerText = titulo;
+            document.getElementById('confMsg').innerText = msg;
+            callbackConfirmacao = callback;
+            document.getElementById('modalConfirmacao').style.display = 'flex';
+        }
+        document.getElementById('btnConfSim').onclick = function() {
+            if (callbackConfirmacao) callbackConfirmacao();
+            fecharModal('modalConfirmacao');
+        };
+
+        // --- RENDERIZAÇÃO ---
+        function render() {
+            const lista = document.getElementById('listaAtivos');
+            lista.innerHTML = '';
+            
+            let totalPatrimonio = 0;
+            let totalInvestido = 0;
+            let alocacao = {};
+
+            const carteiraVisual = [...carteira].sort((a,b) => a.tipo.localeCompare(b.tipo));
+
+            if(carteiraVisual.length === 0) lista.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:30px">Carteira vazia.</p>';
+
+            let tipoAtual = '';
+
+            carteiraVisual.forEach((item) => {
+                let valorAtualTotal = 0, custoTotal = 0;
+
+                if (item.tipo === 'RendaFixa') {
+                    valorAtualTotal = item.precoAtualUnitario;
+                    custoTotal = item.valorInvestidoOriginal; 
+                } else {
+                    valorAtualTotal = item.qtd * item.precoAtualUnitario;
+                    custoTotal = item.qtd * item.precoMedioCompra;
+                }
+                
+                totalPatrimonio += valorAtualTotal;
+                totalInvestido += custoTotal;
+                alocacao[item.tipo] = (alocacao[item.tipo] || 0) + valorAtualTotal;
+
+                const lucroReais = valorAtualTotal - custoTotal;
+                const lucroPorcentagem = custoTotal > 0 ? (lucroReais / custoTotal) * 100 : 0;
+                const cor = lucroReais >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                const sinal = lucroReais >= 0 ? '+' : '';
+                
+                // Data de Compra
+                const dataCompra = new Date(item.id).toLocaleDateString('pt-BR');
+
+                if (item.tipo !== tipoAtual) {
+                    tipoAtual = item.tipo;
+                    lista.innerHTML += `<div style="font-size:0.8rem; color:var(--text-secondary); margin:20px 0 5px 0; text-transform:uppercase; letter-spacing:1px; font-weight:bold">${traduzirTipo(tipoAtual)}</div>`;
+                }
+                
+                const div = document.createElement('div');
+                div.className = 'ativo-card';
+                div.style.borderLeft = `4px solid ${getCor(item.tipo)}`;
+                
+                let btnTxt = item.tipo === 'RendaFixa' ? `Saldo: R$ ${valorAtualTotal.toFixed(2)}` : `Cotação: R$ ${formatarPreco(item.precoAtualUnitario)}`;
+                let acao = item.tipo === 'RendaFixa' ? 'total' : 'unitario';
+                let sub = item.tipo === 'RendaFixa' 
+                    ? `Data: ${dataCompra} • Aporte: R$ ${custoTotal.toFixed(2)}` 
+                    : `Data: ${dataCompra} • ${formatarQtd(item.qtd)} un • PM: R$ ${formatarPreco(item.precoMedioCompra)}`;
+                
+                const blurClass = privacidadeAtiva ? 'blur-text' : '';
+
+                div.innerHTML = `
+                    <div class="ativo-info">
+                        <h3>${item.nome}</h3>
+                        <small class="${blurClass}">${sub}</small>
+                    </div>
+                    <div class="ativo-valores">
+                        <div style="font-weight:bold; font-size:1.1rem;" class="${blurClass}">R$ ${valorAtualTotal.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+                        <div style="display:flex; justify-content:flex-end; gap:8px; align-items:center;">
+                            <small style="color:${cor}; font-weight:bold; margin-right:5px;" class="${blurClass}">${sinal}${lucroPorcentagem.toFixed(1)}%</small>
+                            <button class="btn-cotacao" onclick="abrirModalUpdate(${item.id}, '${acao}')"><i class="fas fa-pen"></i> ${privacidadeAtiva ? '***' : btnTxt}</button>
+                            <button onclick="abrirModalDelete(${item.id})" style="background:none; border:none; color:var(--text-secondary); font-size:1.2rem; cursor:pointer; padding:0 0 0 5px;">&times;</button>
+                        </div>
+                    </div>
+                `;
+                lista.appendChild(div);
+            });
+
+            const elTotal = document.getElementById('totalDisplay');
+            elTotal.innerText = totalPatrimonio.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+            elTotal.className = `valor-total ${privacidadeAtiva ? 'blur-text' : ''}`;
+            
+            const lucroGeral = totalPatrimonio - totalInvestido;
+            const percGeral = totalInvestido > 0 ? (lucroGeral/totalInvestido)*100 : 0;
+            const elLucro = document.getElementById('lucroTotalDisplay');
+            elLucro.innerText = `${lucroGeral >= 0 ? '▲' : '▼'} ${percGeral.toFixed(2)}% (R$ ${lucroGeral.toFixed(2)})`;
+            elLucro.style.background = lucroGeral >= 0 ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 82, 82, 0.2)';
+            elLucro.style.color = lucroGeral >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            elLucro.className = privacidadeAtiva ? 'blur-text' : '';
+
+            salvarHistorico(totalPatrimonio);
+            renderGraficoPizza(alocacao);
+            renderGraficoEvolucaoMensal();
+        }
+
+        // --- CÁLCULO BIDIRECIONAL ---
+        function calcularBidirecional(origem) {
+            const tipo = document.getElementById('tipo').value;
+            if (tipo === 'RendaFixa') return;
+
+            const inpPreco = document.getElementById('precoUnitario');
+            const inpQtd = document.getElementById('qtd');
+            const inpTotal = document.getElementById('valorTotalInput');
+
+            const p = parseFloat(inpPreco.value);
+            const q = parseFloat(inpQtd.value);
+            const t = parseFloat(inpTotal.value);
+
+            if (origem === 'qtd') {
+                if (p && !isNaN(q)) inpTotal.value = (p * q).toFixed(2);
+            } 
+            else if (origem === 'total') {
+                if (p && !isNaN(t)) {
+                    const casas = tipo === 'Cripto' ? 8 : 2;
+                    inpQtd.value = (t / p).toFixed(casas);
+                }
+            }
+            else if (origem === 'preco') {
+                if (q && !isNaN(p)) inpTotal.value = (p * q).toFixed(2);
+            }
+        }
+
+        // --- BACKUP / CONFIGURAÇÕES ---
+        function exportarDados() {
+            const dados = { carteira: carteira, historico: historico, versao: '12.1' };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dados));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            const dataHoje = new Date().toISOString().slice(0,10);
+            downloadAnchorNode.setAttribute("download", `backup_invest_${dataHoje}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importarDados(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const dados = JSON.parse(e.target.result);
+                    if(dados.carteira) {
+                        mostrarConfirmacao("Restaurar?", "Isso substituirá seus dados atuais.", () => {
+                            carteira = dados.carteira;
+                            historico = dados.historico || [];
+                            salvarTudo();
+                            fecharModal('modalConfig');
+                        });
+                    } else { alert('Arquivo inválido.'); }
+                } catch(err) { alert('Erro ao ler arquivo.'); }
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmarReset() {
+            mostrarConfirmacao("Resetar?", "Apagar todos os investimentos?", () => {
+                localStorage.removeItem(DB_KEY);
+                localStorage.removeItem(HIST_KEY);
+                carteira = [];
+                historico = [];
+                render();
+                fecharModal('modalConfig');
+            });
+        }
+
+        // --- API CRIPTO ---
+        async function buscarCriptoSmart() {
+            const tipo = document.getElementById('tipo').value;
+            const nomeInput = document.getElementById('nomeAtivo');
+            const loading = document.getElementById('criptoLoading');
+            const precoInput = document.getElementById('precoUnitario');
+            
+            if (tipo !== 'Cripto' || nomeInput.value.length < 2) return;
+
+            loading.style.display = 'block';
+            const query = nomeInput.value.toLowerCase().trim();
+
+            try {
+                const searchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${query}`);
+                const searchData = await searchRes.json();
+                
+                if (searchData.coins && searchData.coins.length > 0) {
+                    const coinID = searchData.coins[0].id;
+                    loading.innerText = `Encontrado: ${searchData.coins[0].name}.`;
+                    const priceRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinID}&vs_currencies=brl`);
+                    const priceData = await priceRes.json();
+
+                    if (priceData[coinID] && priceData[coinID].brl) {
+                        precoInput.value = priceData[coinID].brl;
+                        loading.style.display = 'none';
+                        if(document.getElementById('valorTotalInput').value) calcularBidirecional('total');
+                    }
+                } else { loading.innerText = "Moeda não encontrada."; }
+            } catch (e) { loading.innerText = "Erro na conexão."; }
+        }
+
+        // --- FORMULÁRIO ---
+        function ajustarFormulario() {
+            const tipo = document.getElementById('tipo').value;
+            const inpNome = document.getElementById('nomeAtivo');
+            const lblNome = document.getElementById('lblNome');
+            const loading = document.getElementById('criptoLoading');
+            const linkStock = document.getElementById('stockLink');
+            
+            loading.style.display = 'none';
+            linkStock.style.display = 'none';
+
+            document.getElementById('divTaxa').style.display = 'none';
+            document.getElementById('precoUnitario').parentElement.style.display = 'flex';
+            document.getElementById('divQtd').style.display = 'flex';
+            
+            const inpPreco = document.getElementById('precoUnitario');
+            const inpQtd = document.getElementById('qtd');
+            const inpTotal = document.getElementById('valorTotalInput');
+            
+            inpPreco.readOnly = false; inpQtd.readOnly = false; inpTotal.readOnly = false;
+            
+            if(tipo === 'Cripto') {
+                lblNome.innerText = "Nome da Moeda";
+                inpNome.placeholder = "bitcoin, pepe, solana";
+                document.getElementById('lblPreco').innerText = "Cotação Atual (R$)";
+                document.getElementById('lblQtd').innerText = "Qtd. Moedas";
+                inpTotal.placeholder = "Valor Gasto (R$)";
+            } 
+            else if (tipo === 'RendaFixa') {
+                lblNome.innerText = "Investimento";
+                inpNome.placeholder = "CDB, Tesouro, LCI";
+                document.getElementById('divTaxa').style.display = 'flex';
+                document.getElementById('precoUnitario').parentElement.style.display = 'none';
+                document.getElementById('divQtd').style.display = 'none';
+                inpTotal.placeholder = "Valor Aportado (R$)";
+            }
+            else {
+                lblNome.innerText = "Código";
+                inpNome.placeholder = "PETR4, MXRF11";
+                document.getElementById('lblPreco').innerText = "Preço Pago";
+                document.getElementById('lblQtd').innerText = "Quantidade";
+                inpTotal.placeholder = "Total (R$)";
+                linkStock.style.display = 'block';
+                linkStock.href = `https://www.google.com/finance/`;
+            }
+            inpPreco.value = ''; inpQtd.value = ''; inpTotal.value = '';
+        }
+
+        function salvarInvestimento() {
+            const tipo = document.getElementById('tipo').value;
+            const nome = document.getElementById('nomeAtivo').value.toUpperCase();
+            if(!nome) return alert("Preencha o nome.");
+
+            let item = { id: Date.now(), tipo, nome, qtd:0, precoMedioCompra:0, precoAtualUnitario:0, valorInvestidoOriginal:0, taxa:'' };
+
+            if(tipo === 'RendaFixa') {
+                item.valorInvestidoOriginal = parseFloat(document.getElementById('valorTotalInput').value);
+                item.precoAtualUnitario = item.valorInvestidoOriginal;
+                item.taxa = document.getElementById('taxa').value;
+            } else {
+                item.precoMedioCompra = parseFloat(document.getElementById('precoUnitario').value);
+                item.qtd = parseFloat(document.getElementById('qtd').value);
+                item.precoAtualUnitario = item.precoMedioCompra;
+            }
+            
+            if(isNaN(item.precoAtualUnitario) || item.precoAtualUnitario <= 0) return alert("Valores inválidos.");
+
+            carteira.push(item);
+            salvarTudo();
+            fecharModal('modalAdd');
+            
+            document.getElementById('nomeAtivo').value = '';
+            document.getElementById('precoUnitario').value = '';
+            document.getElementById('qtd').value = '';
+            document.getElementById('valorTotalInput').value = '';
+        }
+
+        // --- SISTEMA ---
+        function salvarTudo() { localStorage.setItem(DB_KEY, JSON.stringify(carteira)); render(); }
+        
+        function salvarHistorico(total) {
+            const hojeISO = new Date().toISOString().split('T')[0]; 
+            const ultimo = historico[historico.length - 1];
+            
+            if (ultimo && ultimo.data === hojeISO) {
+                ultimo.valor = total;
+            } else {
+                historico.push({ data: hojeISO, valor: total });
+            }
+            localStorage.setItem(HIST_KEY, JSON.stringify(historico));
+        }
+
+        function togglePrivacidade() {
+            privacidadeAtiva = !privacidadeAtiva;
+            localStorage.setItem(PRIV_KEY, privacidadeAtiva);
+            atualizarIconeOlho();
+            render();
+        }
+        function atualizarIconeOlho() {
+            const icon = document.getElementById('eyeIcon');
+            icon.className = privacidadeAtiva ? 'fas fa-eye-slash' : 'fas fa-eye';
+            icon.style.color = privacidadeAtiva ? 'var(--accent-red)' : 'var(--text-color)';
+        }
+
+        // Modais
+        function abrirModalConfig() { document.getElementById('modalConfig').style.display = 'flex'; }
+        function abrirModalAdd() { document.getElementById('modalAdd').style.display = 'flex'; ajustarFormulario(); }
+        function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function abrirModalUpdate(id, modo) {
+            const item = carteira.find(i => i.id === id);
+            if (!item) return;
+            document.getElementById('updId').value = id;
+            document.getElementById('updMode').value = modo;
+            document.getElementById('updTitulo').innerText = item.nome;
+            if(modo === 'total') {
+                document.getElementById('updDesc').innerText = `Saldo atual: R$ ${item.precoAtualUnitario.toFixed(2)}`;
+                document.getElementById('updLabel').innerText = "Novo Saldo Total";
+            } else {
+                document.getElementById('updDesc').innerText = `Cotação atual: R$ ${formatarPreco(item.precoAtualUnitario)}`;
+                document.getElementById('updLabel').innerText = "Nova Cotação Unitária";
+            }
+            document.getElementById('updValor').value = '';
+            document.getElementById('modalUpdate').style.display = 'flex';
+        }
+        function salvarAtualizacao() {
+            const id = parseInt(document.getElementById('updId').value);
+            const v = parseFloat(document.getElementById('updValor').value);
+            const index = carteira.findIndex(i => i.id === id);
+            if(index !== -1 && !isNaN(v)) { carteira[index].precoAtualUnitario = v; salvarTudo(); fecharModal('modalUpdate'); }
+        }
+        function abrirModalDelete(id) { document.getElementById('delId').value = id; document.getElementById('modalDelete').style.display = 'flex'; }
+        function confirmarExclusao() { 
+            const id = parseInt(document.getElementById('delId').value);
+            carteira = carteira.filter(i => i.id !== id);
+            salvarTudo(); fecharModal('modalDelete'); 
+        }
+
+        // Utils
+        function traduzirTipo(t) { const m = {'RendaFixa':'Renda Fixa','Ação':'Ações','FII':'Fundos Imobiliários','Cripto':'Criptoativos','ETF':'ETFs'}; return m[t]||t; }
+        function getCor(t) { const m = {'RendaFixa':'#4CAF50','Ação':'#2196F3','FII':'#FFC107','Cripto':'#FF5722','ETF':'#9C27B0'}; return m[t]||'#999'; }
+        function formatarPreco(v) { return v > 1000 ? v.toLocaleString('pt-BR',{minimumFractionDigits:2}) : v.toFixed(2); }
+        function formatarQtd(v) { return v % 1 === 0 ? v : v.toFixed(6); }
+
+        // --- GRÁFICOS ---
+        
+        // GRÁFICO PIZZA (COM PORCENTAGEM E TOOLTIP MELHORADO)
+        function renderGraficoPizza(dados) {
+            const ctx = document.getElementById('graficoAlocacao');
+            const txtColor = document.body.classList.contains('light-mode') ? '#333' : '#aaa';
+            
+            // Cálculos
+            const valores = Object.values(dados);
+            const chaves = Object.keys(dados);
+            const total = valores.reduce((a, b) => a + b, 0);
+            
+            // Labels com porcentagem
+            const labelsComPorcentagem = chaves.map((chave, index) => {
+                const val = valores[index];
+                const perc = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                return `${traduzirTipo(chave)} (${perc}%)`;
+            });
+
+            if(chartPizza) chartPizza.destroy();
+            chartPizza = new Chart(ctx, {
+                type: 'doughnut',
+                data: { 
+                    labels: labelsComPorcentagem, // Labels novos
+                    datasets: [{ 
+                        data: valores, 
+                        backgroundColor: chaves.map(getCor), 
+                        borderWidth:0 
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                color: txtColor, 
+                                boxWidth:10, 
+                                font: {size: 13} 
+                            } 
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    // Customizando tooltip: Label + Valor R$
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    } 
+                }
+            });
+        }
+
+        // GRÁFICO MENSAL (BARRAS FINAS)
+        function renderGraficoEvolucaoMensal() {
+            const ctx = document.getElementById('graficoEvolucao');
+            const txtColor = document.body.classList.contains('light-mode') ? '#666' : '#888';
+            const gridColor = document.body.classList.contains('light-mode') ? '#e0e0e0' : '#333';
+
+            const dadosAgrupados = {};
+
+            historico.forEach(h => {
+                let mesAno = "";
+                if (h.data.includes('-')) {
+                    const parts = h.data.split('-');
+                    mesAno = `${parts[1]}/${parts[0].slice(2)}`;
+                } else {
+                    const parts = h.data.split('/');
+                    const anoAtual = new Date().getFullYear().toString().slice(2);
+                    mesAno = `${parts[1]}/${anoAtual}`;
+                }
+                dadosAgrupados[mesAno] = h.valor;
+            });
+
+            const labels = Object.keys(dadosAgrupados);
+            const values = Object.values(dadosAgrupados);
+
+            if(chartBarra) chartBarra.destroy();
+            chartBarra = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Patrimônio', 
+                        data: values,
+                        backgroundColor: '#4CAF50',
+                        borderRadius: 4,
+                        barPercentage: 0.5,     
+                        categoryPercentage: 0.8, 
+                        maxBarThickness: 40      
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { ticks: { color: txtColor }, grid: { display:false } }, 
+                        y: { ticks: { color: txtColor }, grid: { color: gridColor } } 
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
