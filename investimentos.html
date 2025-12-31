@@ -156,7 +156,7 @@
     <div class="header-wrapper">
         <div class="header-content">
             <div class="header-left">
-                <div class="app-name">Carteira de Investimentos</div>
+                <div class="app-name">Carteira</div>
             </div>
             <div class="header-right">
                 <a href="index.html" class="icon-btn" title="Ir para Finanças"><i class="fas fa-home"></i></a>
@@ -327,10 +327,8 @@
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO (SEU TOKEN JÁ INSERIDO) ---
         const BRAPI_TOKEN = '4SyUvseEoazmZec7AAntHY'; 
 
-        // --- SPLASH SCREEN ---
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
@@ -340,7 +338,6 @@
             atualizarPrecosAutomaticamente();
         });
 
-        // --- DADOS ---
         const DB_KEY = 'invest_jeff_v10';
         const HIST_KEY = 'invest_jeff_history';
         const PRIV_KEY = 'invest_privacy';
@@ -356,7 +353,6 @@
         render();
         atualizarIconeOlho();
 
-        // --- RENDERIZAÇÃO POR CATEGORIA (SANFONA) ---
         function render() {
             const lista = document.getElementById('listaAtivos');
             lista.innerHTML = '';
@@ -365,7 +361,6 @@
             let totalInvestido = 0; 
             let alocacao = {};
             
-            // 1. CALCULA TOTAIS PRIMEIRO
             carteira.forEach((item) => {
                 let valorAtualTotal = 0, custoTotal = 0;
                 if (item.tipo === 'RendaFixa') {
@@ -380,7 +375,6 @@
                 alocacao[item.tipo] = (alocacao[item.tipo] || 0) + valorAtualTotal;
             });
 
-            // 2. ATUALIZA CABEÇALHO
             const elTotal = document.getElementById('totalDisplay');
             elTotal.innerText = totalPatrimonio.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
             elTotal.className = `valor-total ${privacidadeAtiva ? 'blur-text' : ''}`;
@@ -397,34 +391,30 @@
             renderGraficoPizza(alocacao);
             renderGraficoEvolucaoMensal();
 
-            // 3. RENDERIZA LISTA AGRUPADA (SANFONA)
             if(carteira.length === 0) {
                 lista.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:30px">Carteira vazia.</p>';
                 return;
             }
 
             const categoriasOrdem = ['Ação', 'FII', 'ETF', 'Cripto', 'RendaFixa'];
-            const nomesCat = {'Ação':'Ações', 'FII':'Fundos Imobiliários', 'ETF':'ETFs', 'Cripto':'Criptoativos', 'RendaFixa':'Renda Fixa'};
+            // ALTERAÇÃO AQUI: "Criptomoedas"
+            const nomesCat = {'Ação':'Ações', 'FII':'Fundos Imobiliários', 'ETF':'ETFs', 'Cripto':'Criptomoedas', 'RendaFixa':'Renda Fixa'};
 
             categoriasOrdem.forEach(catKey => {
                 const itensCat = carteira.filter(i => i.tipo === catKey);
                 if (itensCat.length > 0) {
-                    // Wrapper da Categoria
                     const wrapper = document.createElement('div');
                     wrapper.className = 'categoria-wrapper';
                     
-                    // Header
                     const header = document.createElement('div');
                     header.className = 'categoria-header';
                     header.onclick = () => toggleCategoria(catKey);
                     header.innerHTML = `<span>${nomesCat[catKey]}</span> <i id="icon-${catKey}" class="fas fa-chevron-down"></i>`;
                     
-                    // Content
                     const content = document.createElement('div');
                     content.className = 'categoria-content';
                     content.id = `cat-content-${catKey}`;
 
-                    // Itens
                     itensCat.forEach(item => {
                         let valorAtualTotal = 0, custoTotal = 0;
                         if (item.tipo === 'RendaFixa') {
@@ -480,8 +470,6 @@
             icon.parentElement.classList.toggle('collapsed');
         }
 
-        // --- LÓGICA DE ATUALIZAÇÃO E EDIÇÃO ---
-
         function abrirModalUpdate(id) {
             const item = carteira.find(i => i.id === id);
             if (!item) return;
@@ -490,10 +478,9 @@
             document.getElementById('updTitulo').innerText = "Editar: " + item.nome;
             document.getElementById('updTipo').value = item.tipo;
 
-            // Configurações de visibilidade baseadas no tipo
-            const divPosicao = document.getElementById('divUpdPosicao'); // Qtd e PM
-            const divInvestido = document.getElementById('divUpdInvestido'); // Valor Investido (RF)
-            const divID = document.getElementById('divUpdApiID'); // ID Cripto
+            const divPosicao = document.getElementById('divUpdPosicao'); 
+            const divInvestido = document.getElementById('divUpdInvestido'); 
+            const divID = document.getElementById('divUpdApiID'); 
             const labelValor = document.getElementById('updLabelValor');
 
             if (item.tipo === 'RendaFixa') {
@@ -501,14 +488,12 @@
                 divInvestido.style.display = 'block';
                 divID.style.display = 'none';
                 labelValor.innerText = "Saldo Total Atual (R$)";
-                
-                document.getElementById('updValor').value = item.precoAtualUnitario; // Saldo
+                document.getElementById('updValor').value = item.precoAtualUnitario;
                 document.getElementById('updInvestido').value = item.valorInvestidoOriginal;
             } else {
                 divPosicao.style.display = 'block';
                 divInvestido.style.display = 'none';
                 labelValor.innerText = "Cotação Atual Unitária (R$)";
-                
                 document.getElementById('updValor').value = item.precoAtualUnitario;
                 document.getElementById('updQtd').value = item.qtd;
                 document.getElementById('updPM').value = item.precoMedioCompra;
@@ -520,7 +505,6 @@
                     divID.style.display = 'none';
                 }
             }
-            
             document.getElementById('modalUpdate').style.display = 'flex';
         }
 
@@ -530,35 +514,28 @@
             if(index === -1) return;
 
             const item = carteira[index];
-            const novoValor = parseFloat(document.getElementById('updValor').value); // Cotação ou Saldo
+            const novoValor = parseFloat(document.getElementById('updValor').value);
             
-            // 1. Atualiza Valor Atual
             if(!isNaN(novoValor)) {
                 item.precoAtualUnitario = novoValor;
                 if(item.tipo === 'RendaFixa') item.dataUltimaAtualizacao = new Date().toISOString().split('T')[0];
             }
 
-            // 2. Atualiza Posição (Quantidade e PM) ou Valor Investido
             if(item.tipo === 'RendaFixa') {
                 const novoInvestido = parseFloat(document.getElementById('updInvestido').value);
                 if(!isNaN(novoInvestido)) item.valorInvestidoOriginal = novoInvestido;
             } else {
                 const novaQtd = parseFloat(document.getElementById('updQtd').value);
                 const novoPM = parseFloat(document.getElementById('updPM').value);
-                
                 if(!isNaN(novaQtd)) item.qtd = novaQtd;
                 if(!isNaN(novoPM)) item.precoMedioCompra = novoPM;
-
-                // 3. Atualiza ID Cripto (se houver)
                 const manualID = document.getElementById('updApiID').value.toLowerCase().trim();
                 if(item.tipo === 'Cripto' && manualID.length > 1) item.apiID = manualID;
             }
 
-            salvarTudo(); 
-            fecharModal('modalUpdate'); 
+            salvarTudo(); fecharModal('modalUpdate'); 
         }
 
-        // --- FUNÇÕES DE BUSCA E UPDATE AUTOMÁTICO (BATCH) ---
         async function buscarCotacaoAoCadastrar() {
             const tipo = document.getElementById('tipo').value;
             const nomeInput = document.getElementById('nomeAtivo');
@@ -606,7 +583,6 @@
             const elLucro = document.getElementById('lucroTotalDisplay');
             let houveMudanca = false;
 
-            // CRIPTO BATCH
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
             if (criptos.length > 0) {
                 elLucro.innerText = "Atualizando Cripto...";
@@ -618,7 +594,6 @@
                         criptos.forEach(item => { if (item.apiID && data[item.apiID]) { item.precoAtualUnitario = data[item.apiID].brl; houveMudanca = true; } });
                     } catch (e) {}
                 }
-                // Tenta recuperar sem ID
                 const semID = criptos.filter(c => !c.apiID);
                 for (let item of semID) {
                     try {
@@ -635,7 +610,6 @@
                 }
             }
 
-            // B3 BRAPI
             const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
             if (ativosB3.length > 0) {
                 elLucro.innerText = "Atualizando B3...";
@@ -652,7 +626,6 @@
                 } catch (e) {}
             }
 
-            // RENDA FIXA CDI
             const rf = carteira.filter(i => i.tipo === 'RendaFixa' && i.taxa && i.taxa.includes('CDI'));
             if (rf.length > 0) {
                 elLucro.innerText = "Calculando CDI...";
@@ -680,7 +653,6 @@
             if (houveMudanca) salvarTudo(); else render();
         }
 
-        // --- FUNÇÕES AUXILIARES ---
         function calcularDiasUteis(i, f) { let c=0; let d = new Date(i); const e = new Date(f); d.setDate(d.getDate()+1); while(d<=e){ const w=d.getDay(); if(w!==0&&w!==6)c++; d.setDate(d.getDate()+1); } return c; }
         function calcularBidirecional(o) {
             const tipo = document.getElementById('tipo').value;
@@ -731,7 +703,7 @@
         function carregarPref() { if(localStorage.getItem('tema')==='light') document.body.classList.add('light-mode'); }
         function alternarTema() { const l=document.body.classList.toggle('light-mode'); localStorage.setItem('tema',l?'light':'dark'); render(); }
         function abrirModalConfig() { document.getElementById('modalConfig').style.display='flex'; }
-        function exportarDados() { const d="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({carteira,historico,versao:'17.0'})); const a=document.createElement('a'); a.href=d; a.download='backup.json'; document.body.appendChild(a); a.click(); a.remove(); }
+        function exportarDados() { const d="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({carteira,historico,versao:'17.1'})); const a=document.createElement('a'); a.href=d; a.download='backup.json'; document.body.appendChild(a); a.click(); a.remove(); }
         function importarDados(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ try{const d=JSON.parse(e.target.result); carteira=d.carteira; historico=d.historico||[]; salvarTudo(); fecharModal('modalConfig');}catch(e){alert('Erro');} }; r.readAsText(f); }
         function confirmarReset() { mostrarConfirmacao("Resetar?", "Apagar tudo?", ()=>{ localStorage.removeItem(DB_KEY); localStorage.removeItem(HIST_KEY); carteira=[]; historico=[]; render(); fecharModal('modalConfig'); }); }
         function mostrarConfirmacao(t,m,c) { document.getElementById('confTitulo').innerText=t; document.getElementById('confMsg').innerText=m; callbackConfirmacao=c; document.getElementById('modalConfirmacao').style.display='flex'; }
@@ -745,12 +717,25 @@
             else if(t==='FII') { ln.innerText="FII"; n.placeholder="Ex: MXRF11"; }
             else { ln.innerText="Ação"; n.placeholder="Ex: PETR4"; }
         }
-        function traduzirTipo(t) { const m={'RendaFixa':'Renda Fixa','Ação':'Ações','FII':'Fundos Imobiliários','Cripto':'Criptoativos','ETF':'ETFs'}; return m[t]||t; }
+        function traduzirTipo(t) { const m={'RendaFixa':'Renda Fixa','Ação':'Ações','FII':'Fundos Imobiliários','Cripto':'Criptomoedas','ETF':'ETFs'}; return m[t]||t; }
         function getCor(t) { const m={'RendaFixa':'#4CAF50','Ação':'#2196F3','FII':'#FFC107','Cripto':'#FF5722','ETF':'#9C27B0'}; return m[t]||'#999'; }
         function formatarPreco(v) { return v>1000?v.toLocaleString('pt-BR',{minimumFractionDigits:2}):v.toFixed(2); }
         function formatarQtd(v) { return v%1===0?v:v.toFixed(6); }
         function renderGraficoPizza(d) { const v=Object.values(d); const k=Object.keys(d); const t=v.reduce((a,b)=>a+b,0); const l=k.map((x,i)=>`${traduzirTipo(x)} (${t>0?((v[i]/t)*100).toFixed(1):0}%)`); if(chartPizza)chartPizza.destroy(); chartPizza=new Chart(document.getElementById('graficoAlocacao'),{type:'doughnut',data:{labels:l,datasets:[{data:v,backgroundColor:k.map(getCor),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:document.body.classList.contains('light-mode')?'#333':'#aaa',boxWidth:10,font:{size:13}}}}}}); }
-        function renderGraficoEvolucaoMensal() { const d={}; historico.forEach(h=>{let m=""; if(h.data.includes('-')){const p=h.data.split('-');m=`${p[1]}/${p[0].slice(2)}`;}else{const p=h.data.split('/');m=`${p[1]}/${new Date().getFullYear().toString().slice(2)}`;} d[m]=h.valor;}); const l=Object.keys(d); const v=Object.values(d); if(chartBarra)chartBarra.destroy(); chartBarra=new Chart(document.getElementById('graficoEvolucao'),{type:'bar',data:{labels:l,datasets:[{label:'Patrimônio',data:v,backgroundColor:'#4CAF50',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#777'},grid:{display:false}},y:{ticks:{color:'#777'},grid:{color:'#444'}}}}}); }
+        
+        // GRÁFICO MAIS FINO (maxBarThickness: 15)
+        function renderGraficoEvolucaoMensal() { 
+            const d={}; 
+            historico.forEach(h=>{let m=""; if(h.data.includes('-')){const p=h.data.split('-');m=`${p[1]}/${p[0].slice(2)}`;}else{const p=h.data.split('/');m=`${p[1]}/${new Date().getFullYear().toString().slice(2)}`;} d[m]=h.valor;}); 
+            const l=Object.keys(d); 
+            const v=Object.values(d); 
+            if(chartBarra)chartBarra.destroy(); 
+            chartBarra=new Chart(document.getElementById('graficoEvolucao'),{
+                type:'bar',
+                data:{labels:l,datasets:[{label:'Patrimônio',data:v,backgroundColor:'#4CAF50',borderRadius:4, barPercentage: 0.5, categoryPercentage: 0.5, maxBarThickness: 15}]}, // <--- AJUSTADO AQUI
+                options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#777'},grid:{display:false}},y:{ticks:{color:'#777'},grid:{color:'#444'}}}}
+            }); 
+        }
     </script>
     <script>if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js');}</script>
 </body>
