@@ -102,6 +102,7 @@
         .lista-ativos { width: 100%; max-width: 600px; }
         
         .categoria-wrapper { margin-bottom: 15px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); background: var(--card-bg); }
+        
         .categoria-header {
             padding: 15px; background: var(--cat-header-bg); cursor: pointer;
             display: flex; justify-content: space-between; align-items: center;
@@ -110,8 +111,11 @@
         }
         .categoria-header:hover { opacity: 0.9; }
         .categoria-header i { transition: transform 0.3s; }
+        
+        /* QUANDO ESTÁ FECHADO (PADRÃO) */
         .categoria-header.collapsed i { transform: rotate(-90deg); }
         
+        /* CONTEÚDO DA LISTA */
         .categoria-content { display: block; padding: 0 10px 10px 10px; }
         .categoria-content.hidden { display: none; }
 
@@ -400,13 +404,12 @@
             const lucroGeral = totalPatrimonio - totalInvestido;
             const percGeral = totalInvestido > 0 ? (lucroGeral/totalInvestido)*100 : 0;
             const elLucro = document.getElementById('lucroTotalDisplay');
-            // NÃO SOBRESCREVEMOS SE TIVER "ATUALIZANDO..."
-            if(!elLucro.innerText.includes('Atualizando')) {
-                elLucro.innerText = `${lucroGeral >= 0 ? '▲' : '▼'} ${percGeral.toFixed(2)}% (R$ ${lucroGeral.toFixed(2)})`;
-                elLucro.style.background = lucroGeral >= 0 ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 82, 82, 0.2)';
-                elLucro.style.color = lucroGeral >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-                elLucro.className = privacidadeAtiva ? 'blur-text' : '';
-            }
+            
+            // CORREÇÃO: Nunca substituir o texto de lucro por mensagem de "carregando"
+            elLucro.innerText = `${lucroGeral >= 0 ? '▲' : '▼'} ${percGeral.toFixed(2)}% (R$ ${lucroGeral.toFixed(2)})`;
+            elLucro.style.background = lucroGeral >= 0 ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 82, 82, 0.2)';
+            elLucro.style.color = lucroGeral >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            elLucro.className = privacidadeAtiva ? 'blur-text' : '';
 
             salvarHistorico(totalPatrimonio);
             renderGraficoPizza(alocacao);
@@ -426,13 +429,15 @@
                     const wrapper = document.createElement('div');
                     wrapper.className = 'categoria-wrapper';
                     
+                    // HEADER (Agora começa com 'collapsed')
                     const header = document.createElement('div');
-                    header.className = 'categoria-header';
+                    header.className = 'categoria-header collapsed'; // <--- MUDANÇA: COMEÇA FECHADO
                     header.onclick = () => toggleCategoria(catKey);
                     header.innerHTML = `<span>${nomesCat[catKey]}</span> <i id="icon-${catKey}" class="fas fa-chevron-down"></i>`;
                     
+                    // CONTENT (Agora começa com 'hidden')
                     const content = document.createElement('div');
-                    content.className = 'categoria-content';
+                    content.className = 'categoria-content hidden'; // <--- MUDANÇA: COMEÇA OCULTO
                     content.id = `cat-content-${catKey}`;
 
                     itensCat.forEach(item => {
@@ -449,7 +454,6 @@
                         const lucroPorcentagem = custoTotal > 0 ? (lucroReais / custoTotal) * 100 : 0;
                         const cor = lucroReais >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
                         const sinal = lucroReais >= 0 ? '+' : '';
-                        const dataCompra = new Date(item.id).toLocaleDateString('pt-BR');
                         const blurClass = privacidadeAtiva ? 'blur-text' : '';
                         
                         let sub = item.tipo === 'RendaFixa' 
@@ -601,16 +605,15 @@
         }
 
         async function atualizarPrecosAutomaticamente() {
-            const elLucro = document.getElementById('lucroTotalDisplay');
+            // NÃO LIMPA MAIS O TEXTO DE LUCRO
             const iconRef = document.getElementById('refreshIcon');
-            iconRef.classList.add('spinning'); // Animação de giro
+            iconRef.classList.add('spinning'); 
             let houveMudanca = false;
-            const timestamp = new Date().getTime(); // Anti-cache Global
+            const timestamp = new Date().getTime(); 
 
-            // CRIPTO BATCH
+            // CRIPTO
             const criptos = carteira.filter(i => i.tipo === 'Cripto');
             if (criptos.length > 0) {
-                elLucro.innerText = "Atualizando Cripto...";
                 const ids = criptos.filter(c => c.apiID).map(c => c.apiID).join(',');
                 if (ids) {
                     try {
@@ -619,8 +622,6 @@
                         criptos.forEach(item => { if (item.apiID && data[item.apiID]) { item.precoAtualUnitario = data[item.apiID].brl; houveMudanca = true; } });
                     } catch (e) {}
                 }
-                
-                // FALLBACK PARA SEM ID (RECUPERA E SALVA)
                 const semID = criptos.filter(c => !c.apiID);
                 for (let item of semID) {
                     try {
@@ -630,21 +631,16 @@
                             const top1 = sData.coins[0];
                             const pRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${top1.id}&vs_currencies=brl&_=${timestamp}`);
                             const pData = await pRes.json();
-                            if (pData[top1.id]) { 
-                                item.apiID = top1.id; // SALVA PARA SEMPRE
-                                item.precoAtualUnitario = pData[top1.id].brl; 
-                                houveMudanca = true; 
-                            }
+                            if (pData[top1.id]) { item.apiID = top1.id; item.precoAtualUnitario = pData[top1.id].brl; houveMudanca = true; }
                         }
                     } catch (e) {}
                     await new Promise(r => setTimeout(r, 1500));
                 }
             }
 
-            // B3 BRAPI
+            // B3
             const ativosB3 = carteira.filter(i => ['Ação', 'FII', 'ETF'].includes(i.tipo));
             if (ativosB3.length > 0) {
-                elLucro.innerText = "Atualizando B3...";
                 const tickers = ativosB3.map(i => i.nome).join(',');
                 try {
                     const res = await fetch(`https://brapi.dev/api/quote/${tickers}?range=1d&interval=1d&fundamental=false&token=${BRAPI_TOKEN}&_=${timestamp}`);
@@ -658,10 +654,9 @@
                 } catch (e) {}
             }
 
-            // RENDA FIXA CDI
+            // RENDA FIXA
             const rf = carteira.filter(i => i.tipo === 'RendaFixa' && i.taxa && i.taxa.includes('CDI'));
             if (rf.length > 0) {
-                elLucro.innerText = "Calculando CDI...";
                 try {
                     const res = await fetch('https://brasilapi.com.br/api/taxas/v1');
                     const taxas = await res.json();
@@ -685,14 +680,7 @@
             }
             
             iconRef.classList.remove('spinning');
-            if (houveMudanca) {
-                salvarTudo(); 
-            } else {
-                // Força recalculo do display mesmo se preços não mudaram (para limpar texto "Atualizando...")
-                const elLucro = document.getElementById('lucroTotalDisplay');
-                elLucro.innerText = "---"; 
-                render(); 
-            }
+            if (houveMudanca) salvarTudo(); 
         }
 
         // --- FUNÇÕES AUXILIARES ---
@@ -746,7 +734,7 @@
         function carregarPref() { if(localStorage.getItem('tema')==='light') document.body.classList.add('light-mode'); }
         function alternarTema() { const l=document.body.classList.toggle('light-mode'); localStorage.setItem('tema',l?'light':'dark'); render(); }
         function abrirModalConfig() { document.getElementById('modalConfig').style.display='flex'; }
-        function exportarDados() { const d="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({carteira,historico,versao:'17.2'})); const a=document.createElement('a'); a.href=d; a.download='backup.json'; document.body.appendChild(a); a.click(); a.remove(); }
+        function exportarDados() { const d="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify({carteira,historico,versao:'18.0'})); const a=document.createElement('a'); a.href=d; a.download='backup.json'; document.body.appendChild(a); a.click(); a.remove(); }
         function importarDados(i) { const f=i.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ try{const d=JSON.parse(e.target.result); carteira=d.carteira; historico=d.historico||[]; salvarTudo(); fecharModal('modalConfig');}catch(e){alert('Erro');} }; r.readAsText(f); }
         function confirmarReset() { mostrarConfirmacao("Resetar?", "Apagar tudo?", ()=>{ localStorage.removeItem(DB_KEY); localStorage.removeItem(HIST_KEY); carteira=[]; historico=[]; render(); fecharModal('modalConfig'); }); }
         function mostrarConfirmacao(t,m,c) { document.getElementById('confTitulo').innerText=t; document.getElementById('confMsg').innerText=m; callbackConfirmacao=c; document.getElementById('modalConfirmacao').style.display='flex'; }
