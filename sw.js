@@ -1,4 +1,4 @@
-const CACHE_NAME = 'money-app-v103'; 
+const CACHE_NAME = 'money-app-v104'; 
 
 const assets = [
   './',
