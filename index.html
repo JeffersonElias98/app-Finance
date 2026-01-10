@@ -36,13 +36,20 @@
         body.privacy-active .sensitive { filter: blur(8px); transition: filter 0.3s; user-select: none; }
         body.privacy-active canvas, body.privacy-active .progress-fill { filter: blur(10px); opacity: 0.5; }
         
+        /* REFORÇO CSS CONTRA ZOOM AUTOMÁTICO */
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body {
             background-color: var(--bg-color); color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0; padding-top: 80px; transition: background-color 0.3s; display: flex; justify-content: center;
             overscroll-behavior-y: none;
             -webkit-tap-highlight-color: transparent;
-            touch-action: pan-x pan-y; /* BLOQUEIO DE ZOOM */
+            /* COMANDO CSS PARA EVITAR GESTOS DE PINÇA */
+            touch-action: pan-x pan-y; 
         }
 
         .header-wrapper {
@@ -103,7 +110,7 @@
 
         .legend-area { 
             width: 50%; height: 100%; 
-            padding-left: 20px; /* AUMENTADO PARA 20px (Mais para direita) */
+            padding-left: 20px;
             display: none; 
             flex-direction: column; 
             justify-content: center;
@@ -433,6 +440,23 @@
         let acumularSaldo = false; 
         const LIMITE_FATIAS = 6; 
 
+        // --- BLOQUEIO DE ZOOM (JAVASCRIPT REFORÇADO) ---
+        // Bloqueia gesto de pinça (dois dedos)
+        document.addEventListener('touchmove', function (event) {
+          if (event.scale !== 1) { event.preventDefault(); }
+        }, { passive: false });
+
+        // Bloqueia duplo toque rápido
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+          const now = (new Date()).getTime();
+          if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+          }
+          lastTouchEnd = now;
+        }, { passive: false });
+        // ----------------------------------------------
+
         function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
         function mostrarConfirmacao(titulo, msg, callback) { document.getElementById('confTitulo').innerText = titulo; document.getElementById('confMsg').innerText = msg; callbackConfirmacao = callback; document.getElementById('modalConfirmacao').style.display = 'flex'; }
         
@@ -597,7 +621,6 @@
                     const div = document.createElement('div');
                     div.className = 'custom-legend-item';
                     
-                    // LEGEND COM PORCENTAGEM AO LADO E FONTE PEQUENA
                     div.innerHTML = `<div class="legend-color-box" style="background-color:${color}"></div><div class="legend-text">${item.categoria} (${perc})</div>`;
                     
                     div.onclick = function() {
@@ -612,7 +635,6 @@
                 });
             }
 
-            // OPÇÕES DO CHARTJS COM CLIQUE E TOOLTIP PERSONALIZADOS
             chartObj = new Chart(document.getElementById('meuGrafico'), {
                 type: tipoGraficoAtual,
                 data: {
