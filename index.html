@@ -40,6 +40,7 @@
         html {
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
+            overflow-x: hidden; /* Evita scroll lateral */
         }
 
         body {
@@ -47,9 +48,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0; padding-top: 80px; transition: background-color 0.3s; display: flex; justify-content: center;
             
-            /* Correção: permite scroll (pan) e zoom programático, mas manipulation evita double-tap zoom */
+            /* ESSENCIAL: Permite scroll (pan) mas bloqueia duplo clique (zoom) via CSS */
             touch-action: manipulation; 
             -webkit-tap-highlight-color: transparent;
+            /* Removi o overscroll-behavior que travava a sensação de scroll */
         }
 
         .header-wrapper {
@@ -440,21 +442,13 @@
         let acumularSaldo = false; 
         const LIMITE_FATIAS = 6; 
 
-        // --- CORREÇÃO DO BLOQUEIO DE ZOOM (Permitindo Scroll) ---
-        // Impede zoom apenas se houver 2 ou mais dedos (Pinça)
-        document.addEventListener('touchmove', function (event) {
-          if (event.touches.length > 1) {
-             event.preventDefault(); // Bloqueia zoom
-          }
-          // Se for 1 dedo, não faz nada (permite scroll)
-        }, { passive: false });
-
-        // Bloqueia gestos nativos do iOS (como pinça de zoom)
+        // --- BLOQUEIO DE ZOOM SEGURO (MANTÉM SCROLL) ---
+        // 1. Bloqueia gesto de pinça (zoom com 2 dedos) no iOS/Safari
         document.addEventListener('gesturestart', function (event) {
             event.preventDefault();
         });
 
-        // Bloqueia duplo toque rápido (Double Tap Zoom)
+        // 2. Bloqueia duplo toque rápido (Double Tap Zoom)
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
           const now = (new Date()).getTime();
@@ -463,6 +457,8 @@
           }
           lastTouchEnd = now;
         }, { passive: false });
+        
+        // REMOVIDO: O listener de 'touchmove' que bloqueava o scroll.
         // --------------------------------------------------------
 
         function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
