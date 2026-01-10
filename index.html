@@ -46,10 +46,10 @@
             background-color: var(--bg-color); color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0; padding-top: 80px; transition: background-color 0.3s; display: flex; justify-content: center;
-            overscroll-behavior-y: none;
+            
+            /* Correção: permite scroll (pan) e zoom programático, mas manipulation evita double-tap zoom */
+            touch-action: manipulation; 
             -webkit-tap-highlight-color: transparent;
-            /* COMANDO CSS PARA EVITAR GESTOS DE PINÇA */
-            touch-action: pan-x pan-y; 
         }
 
         .header-wrapper {
@@ -440,13 +440,21 @@
         let acumularSaldo = false; 
         const LIMITE_FATIAS = 6; 
 
-        // --- BLOQUEIO DE ZOOM (JAVASCRIPT REFORÇADO) ---
-        // Bloqueia gesto de pinça (dois dedos)
+        // --- CORREÇÃO DO BLOQUEIO DE ZOOM (Permitindo Scroll) ---
+        // Impede zoom apenas se houver 2 ou mais dedos (Pinça)
         document.addEventListener('touchmove', function (event) {
-          if (event.scale !== 1) { event.preventDefault(); }
+          if (event.touches.length > 1) {
+             event.preventDefault(); // Bloqueia zoom
+          }
+          // Se for 1 dedo, não faz nada (permite scroll)
         }, { passive: false });
 
-        // Bloqueia duplo toque rápido
+        // Bloqueia gestos nativos do iOS (como pinça de zoom)
+        document.addEventListener('gesturestart', function (event) {
+            event.preventDefault();
+        });
+
+        // Bloqueia duplo toque rápido (Double Tap Zoom)
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
           const now = (new Date()).getTime();
@@ -455,7 +463,7 @@
           }
           lastTouchEnd = now;
         }, { passive: false });
-        // ----------------------------------------------
+        // --------------------------------------------------------
 
         function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
         function mostrarConfirmacao(titulo, msg, callback) { document.getElementById('confTitulo').innerText = titulo; document.getElementById('confMsg').innerText = msg; callbackConfirmacao = callback; document.getElementById('modalConfirmacao').style.display = 'flex'; }
