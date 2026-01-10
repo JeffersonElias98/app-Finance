@@ -36,11 +36,13 @@
         body.privacy-active .sensitive { filter: blur(8px); transition: filter 0.3s; user-select: none; }
         body.privacy-active canvas, body.privacy-active .progress-fill { filter: blur(10px); opacity: 0.5; }
         
-        /* REFORÇO CSS CONTRA ZOOM AUTOMÁTICO */
         html {
+            /* Evita aumento automático de fonte ao girar tela */
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
-            overflow-x: hidden; /* Evita scroll lateral */
+            overflow-x: hidden;
+            /* Garante que o scroll flua suavemente */
+            -webkit-overflow-scrolling: touch; 
         }
 
         body {
@@ -48,10 +50,9 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0; padding-top: 80px; transition: background-color 0.3s; display: flex; justify-content: center;
             
-            /* ESSENCIAL: Permite scroll (pan) mas bloqueia duplo clique (zoom) via CSS */
-            touch-action: manipulation; 
+            /* ESSENCIAL: Permite manipular (scroll) mas desativa zoom de duplo toque nativo */
+            touch-action: pan-x pan-y; 
             -webkit-tap-highlight-color: transparent;
-            /* Removi o overscroll-behavior que travava a sensação de scroll */
         }
 
         .header-wrapper {
@@ -442,13 +443,24 @@
         let acumularSaldo = false; 
         const LIMITE_FATIAS = 6; 
 
-        // --- BLOQUEIO DE ZOOM SEGURO (MANTÉM SCROLL) ---
-        // 1. Bloqueia gesto de pinça (zoom com 2 dedos) no iOS/Safari
-        document.addEventListener('gesturestart', function (event) {
-            event.preventDefault();
+        // --- SOLUÇÃO FINAL PARA BLOQUEIO DE ZOOM + SCROLL PERMITIDO ---
+        
+        // 1. Bloqueia gesto de pinça (Zoom com 2 dedos) - Funciona no iPhone
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
         });
 
-        // 2. Bloqueia duplo toque rápido (Double Tap Zoom)
+        // 2. Bloqueia movimento de zoom (se tiver mais de 1 dedo na tela)
+        // O segredo é: passive: false para poder cancelar o evento.
+        document.addEventListener('touchmove', function(event) {
+            // Se tiver 2 dedos ou mais...
+            if (event.touches.length > 1) {
+                event.preventDefault(); // ... Bloqueia (Zoom)
+            }
+            // Se tiver 1 dedo, não faz nada (Deixa Scrollar)
+        }, { passive: false });
+
+        // 3. Bloqueia duplo toque rápido (Double Tap Zoom)
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
           const now = (new Date()).getTime();
@@ -458,8 +470,7 @@
           lastTouchEnd = now;
         }, { passive: false });
         
-        // REMOVIDO: O listener de 'touchmove' que bloqueava o scroll.
-        // --------------------------------------------------------
+        // -------------------------------------------------------------
 
         function mostrarAviso(titulo, msg) { document.getElementById('avisoTitulo').innerText = titulo; document.getElementById('avisoMsg').innerText = msg; document.getElementById('modalAviso').style.display = 'flex'; }
         function mostrarConfirmacao(titulo, msg, callback) { document.getElementById('confTitulo').innerText = titulo; document.getElementById('confMsg').innerText = msg; callbackConfirmacao = callback; document.getElementById('modalConfirmacao').style.display = 'flex'; }
